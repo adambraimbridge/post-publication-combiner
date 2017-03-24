@@ -42,7 +42,7 @@ func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
 		//combine data
 		combinedMSG, err := cqp.Processor.Combiner.enrichWithAnnotations(cm.ContentModel)
 		if err != nil {
-			logrus.Errorf("%v - Error obtaining the combined message. Metadata could not have been read. Message will be skipped. %v", tid, err)
+			logrus.Errorf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped. %v", tid, err)
 			return
 		}
 
@@ -53,6 +53,7 @@ func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
 			return
 		}
 		logrus.Printf("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)
+		return
 	}
 
 	logrus.Printf("%v - Skipped unsupported content with contentUri: %v. ", tid, cm.ContentURI)
