@@ -167,6 +167,11 @@ func getTopicsFromProxy(h *healthcheckHandler) ([]byte, error) {
 		logrus.Errorf("Error creating new kafka-proxy healthcheck request: %v", err.Error())
 		return nil, err
 	}
+
+	if h.proxyRequestHeader != "" {
+		req.Header("Host", h.proxyRequestHeader)
+	}
+
 	resp, err := h.httpClient.Do(req)
 	if err != nil {
 		logrus.Errorf("Healthcheck: Error executing kafka-proxy GET request: %v", err.Error())

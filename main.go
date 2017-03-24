@@ -44,7 +44,7 @@ func main() {
 
 	kafkaProxyAddress := app.String(cli.StringOpt{
 		Name:   "kafkaProxyAddress",
-		Value:  "https://localhost:8080",
+		Value:  "http://localhost:8080",
 		Desc:   "Address used by the queue consumer and producer to connect to the queue",
 		EnvVar: "KAFKA_PROXY_ADDR",
 	})
