@@ -16,9 +16,9 @@ This service depends on the following services:
 
 In order to install, execute the following steps:
 
-        ```go get -u github.com/Financial-Times/post-publication-combiner
+        go get -u github.com/Financial-Times/post-publication-combiner
         cd $GOPATH/src/github.com/Financial-Times/post-publication-combiner
-        go get -t```
+        go get -t
 
 ## Running locally
 
@@ -49,7 +49,7 @@ The available parameters are:
 
 Please check --help for more details.
 
-1. Test:
+Test:
     For testing this service, please check the generated kafka messages.
 
 ## Build and deployment
@@ -59,14 +59,14 @@ How can I build and deploy it (lots of this will be links out as the steps will 
 * CI provided by CircleCI: [post-publication-combiner](https://circleci.com/gh/Financial-Times/post-publication-combiner)
 
 ## Service/Utility endpoints
-This service does not provide any public endpoint (neither force), because the events should reflect the data received from any of the PostPublication events.
-It makes no point to post something directly to the latter (combined) queue.
+This service does not provide any endpoints (neither force ones), because the events should reflect the data received from one of the PostPublication events.
+It makes no sense to post something directly to the latter (combined) queue.
 
 ## Healthchecks
 Our standard admin endpoints are:
-`/\__gtg` - returns 503 if any if the checks executed at the /\__health endpoint returns false
+`/__gtg` - returns 503 if any if the checks executed at the /__health endpoint returns false
 
-`/\__health`
+`/__health`
 
 Checks if:
 * kafka-proxy is reachable and PostMetadataPublicationEvents topic is present
@@ -75,11 +75,11 @@ Checks if:
 * document-store-api is reachable
 * public-annotations-api is reachable
 
-`/build-info` (because our DW apps only have that, but with a planned migration to /\__build-info for new services, as we've done with our go apps)
+`/__build-info` 
 
 ### Logging
 
 * The application uses [logrus](https://github.com/Sirupsen/logrus); the log file is initialised in [main.go](main.go).
 * Logging requires an `env` app parameter, for all environments other than `local` logs are written to file.
 * When running locally, logs are written to console. If you want to log locally to file, you need to pass in an env parameter that is != `local`.
-* NOTE: `/build-info` and `/__gtg` endpoints are not logged as they are called every second from varnish/vulcand and this information is not needed in logs/splunk.
+* NOTE: `/__build-info` and `/__gtg` endpoints are not logged as they are called every second from varnish/vulcand and this information is not needed in logs/splunk.

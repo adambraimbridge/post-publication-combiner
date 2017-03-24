@@ -173,7 +173,7 @@ func routeRequests(port *string, healthService *healthcheckHandler) {
 		checkPublicAnnotationsApiHealthcheck(healthService)))
 	http.HandleFunc("/__gtg", healthService.goodToGo)
 
-	// TODO check if other endpoints are needed - build-info?
+	// TODO check if other endpoints are needed - build-info? fix it!
 
 	if err := http.ListenAndServe(":"+*port, nil); err != nil {
 		logrus.Fatalf("Unable to start: %v", err)
