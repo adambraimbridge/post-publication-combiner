@@ -1,4 +1,4 @@
-FROM alpine3.5
+FROM golang:1.8-alpine
 
 RUN mkdir -p "$GOPATH/src"
 

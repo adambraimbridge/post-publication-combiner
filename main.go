@@ -111,10 +111,7 @@ func main() {
 		EnvVar: "PUBLIC_ANNOTATIONS_API_ENDPOINT",
 	})
 
-	// TODO add force endpoint for ingestion into the combined-topic
-	// add basic admin endpoints: health, gtg, build-info, ping?
-	// add circleCI, codecov
-	//TODO log with transaction headers
+	// TODO log with transaction headers
 
 	app.Action = func() {
 		client := http.Client{
@@ -138,8 +135,8 @@ func main() {
 		cp := processor.NewContentQueueProcessor(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *contentTopic, *kafkaConsumerGroup, *concurrentQueueProcessing, comb, mf)
 		mp := processor.NewMetadataQueueProcessor(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *metadataTopic, *kafkaConsumerGroup, *concurrentQueueProcessing, comb, mf)
 
-		contentConsumer := consumer.NewConsumer(cp.Processor.QConf, cp.ProcessMsg, client)
-		metadataConsumer := consumer.NewConsumer(mp.Processor.QConf, mp.ProcessMsg, client)
+		contentConsumer := consumer.NewConsumer(cp.Processor.QConf, cp.ProcessMsg, &client)
+		metadataConsumer := consumer.NewConsumer(mp.Processor.QConf, mp.ProcessMsg, &client)
 
 		go contentConsumer.Start()
 		defer contentConsumer.Stop()
