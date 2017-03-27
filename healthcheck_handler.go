@@ -169,7 +169,7 @@ func getTopicsFromProxy(h *healthcheckHandler) ([]byte, error) {
 	}
 
 	if h.proxyRequestHeader != "" {
-		req.Header.Add("Host",h.proxyRequestHeader)
+		req.Header.Add("Host", h.proxyRequestHeader)
 	}
 
 	resp, err := h.httpClient.Do(req)

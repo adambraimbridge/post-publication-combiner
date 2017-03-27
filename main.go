@@ -3,13 +3,13 @@ package main
 import (
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/go-fthealth/v1a"
-	"github.com/Financial-Times/http-handlers-go/httphandlers"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/post-publication-combiner/processor"
+	"github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
-	"github.com/rcrowley/go-metrics"
 	"net"
 	"net/http"
 	"os"
@@ -159,23 +159,20 @@ func main() {
 
 func routeRequests(port *string, healthService *healthcheckHandler) {
 
-	var monitoringRouter http.Handler = mux.NewRouter()
-	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(logrus.StandardLogger(), monitoringRouter)
-	monitoringRouter = httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
+	r := mux.NewRouter()
 
-	http.Handle("/", monitoringRouter)
-	http.HandleFunc("/__health", v1a.Handler("Post-Publication-Combiner Healthcheck",
+	r.Path(httphandlers.BuildInfoPath).HandlerFunc(httphandlers.BuildInfoHandler)
+	r.Path(httphandlers.PingPath).HandlerFunc(httphandlers.PingHandler)
+	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(v1a.Handler("Post-Publication-Combiner Healthcheck",
 		"Checks for service dependencies: document-store, public-annotations-api, kafka proxy and the presence of related topics",
 		checkPostMetadataPublicationFoundHealthcheck(healthService),
 		checkPostContentPublicationTopicIsFoundHealthcheck(healthService),
 		checkCombinedPublicationTopicTopicIsFoundHealthcheck(healthService),
 		checkDocumentStoreApiHealthcheck(healthService),
-		checkPublicAnnotationsApiHealthcheck(healthService)))
-	http.HandleFunc("/__gtg", healthService.goodToGo)
+		checkPublicAnnotationsApiHealthcheck(healthService)))})
+	r.Path("/__gtg").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(healthService.goodToGo)})
 
-	// TODO check if other endpoints are needed - build-info? fix it!
-
-	if err := http.ListenAndServe(":"+*port, nil); err != nil {
+	if err := http.ListenAndServe(":"+*port, r); err != nil {
 		logrus.Fatalf("Unable to start: %v", err)
 	}
 }
