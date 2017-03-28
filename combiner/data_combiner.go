@@ -1,4 +1,4 @@
-package processor
+package combiner
 
 import (
 	"encoding/json"
@@ -9,21 +9,25 @@ import (
 	"net/http"
 )
 
-type MessageCombiner struct {
-	docStoreApi          utils.ApiURL
-	publicAnnotationsApi utils.ApiURL
-	httpClient           http.Client
-}
+func GetCombinedModelForContent(address utils.ApiURL, client *http.Client, content model.ContentModel) (model.CombinedModel, error) {
 
-func NewMessageCombiner(docStoreApiBaseURL string, docStoreApiEndpoint string, publicAnnotationsApiBaseURL string, publicAnnotationsApiEndpoint string, httpClient http.Client) *MessageCombiner {
-	return &MessageCombiner{
-		docStoreApi:          utils.ApiURL{docStoreApiBaseURL, docStoreApiEndpoint},
-		publicAnnotationsApi: utils.ApiURL{publicAnnotationsApiBaseURL, publicAnnotationsApiEndpoint},
-		httpClient:           httpClient,
+	if content.UUID == "" {
+		return model.CombinedModel{}, errors.New("Content has no UUID provided. Can't deduce annotations for it.")
 	}
+
+	ann, err := getAnnotations(content.UUID, address, client)
+	if err != nil {
+		return model.CombinedModel{}, err
+	}
+
+	return model.CombinedModel{
+		UUID:       content.UUID,
+		Content:    content,
+		V1Metadata: ann,
+	}, nil
 }
 
-func (mc *MessageCombiner) enrichWithContent(metadata model.Annotations) (model.CombinedModel, error) {
+func GetCombinedModelForAnnotations(docStoreAddress utils.ApiURL, publicAnnotationsAddress utils.ApiURL, client *http.Client, metadata model.Annotations) (model.CombinedModel, error) {
 
 	// even though we have the annotations from the kafka queue, we still need to read them from the DB to obtain the TME ids
 	// Note: more detailed checks could be introduced at this point, if we want to make sure we have the same annotations returned
@@ -45,12 +49,12 @@ func (mc *MessageCombiner) enrichWithContent(metadata model.Annotations) (model.
 	aCh := make(chan annResponse)
 
 	go func() {
-		d, err := getAnnotations(metadata.UUID, mc.publicAnnotationsApi, mc.httpClient)
+		d, err := getAnnotations(metadata.UUID, publicAnnotationsAddress, client)
 		aCh <- annResponse{d, err}
 	}()
 
 	go func() {
-		d, err := getContent(metadata.UUID, mc.docStoreApi, mc.httpClient)
+		d, err := getContent(metadata.UUID, docStoreAddress, client)
 		cCh <- cResponse{d, err}
 	}()
 
@@ -71,25 +75,7 @@ func (mc *MessageCombiner) enrichWithContent(metadata model.Annotations) (model.
 	}, nil
 }
 
-func (mc *MessageCombiner) enrichWithAnnotations(content model.ContentModel) (model.CombinedModel, error) {
-
-	if content.UUID == "" {
-		return model.CombinedModel{}, errors.New("Content has no UUID provided. Can't deduce annotations for it.")
-	}
-
-	ann, err := getAnnotations(content.UUID, mc.publicAnnotationsApi, mc.httpClient)
-	if err != nil {
-		return model.CombinedModel{}, err
-	}
-
-	return model.CombinedModel{
-		UUID:       content.UUID,
-		Content:    content,
-		V1Metadata: ann,
-	}, nil
-}
-
-func getAnnotations(uuid string, address utils.ApiURL, client http.Client) ([]model.Annotation, error) {
+func getAnnotations(uuid string, address utils.ApiURL, client *http.Client) ([]model.Annotation, error) {
 
 	b, err := utils.ExecuteHTTPRequest(uuid, address, client)
 	if err != nil {
@@ -104,7 +90,7 @@ func getAnnotations(uuid string, address utils.ApiURL, client http.Client) ([]mo
 	return ann, nil
 }
 
-func getContent(uuid string, address utils.ApiURL, client http.Client) (model.ContentModel, error) {
+func getContent(uuid string, address utils.ApiURL, client *http.Client) (model.ContentModel, error) {
 
 	b, err := utils.ExecuteHTTPRequest(uuid, address, client)
 	if err != nil {

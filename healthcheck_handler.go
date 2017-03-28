@@ -7,8 +7,6 @@ import (
 	"github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/Sirupsen/logrus"
-	"github.com/golang/go/src/pkg/io"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -17,7 +15,7 @@ const (
 )
 
 type healthcheckHandler struct {
-	httpClient                  http.Client
+	httpClient                  *http.Client
 	proxyAddress                string
 	proxyRequestHeader          string
 	metadataTopic               string
@@ -27,7 +25,7 @@ type healthcheckHandler struct {
 	publicAnnotationsApiBaseURL string
 }
 
-func NewCombinerHealthcheck(proxyAddress string, proxyHeader string, client http.Client, metadataTopic string, contentTopic string, combinedTopic string, docStoreApiURL string, publicAnnotationsAPIURL string) *healthcheckHandler {
+func NewCombinerHealthcheck(proxyAddress string, proxyHeader string, client *http.Client, metadataTopic string, contentTopic string, combinedTopic string, docStoreApiURL string, publicAnnotationsAPIURL string) *healthcheckHandler {
 	return &healthcheckHandler{
 		httpClient:                  client,
 		proxyAddress:                proxyAddress,
@@ -128,18 +126,23 @@ func (h *healthcheckHandler) checkIfCombinedPublicationTopicIsPresent() (string,
 
 func (h *healthcheckHandler) checkIfDocumentStoreIsReachable() (string, error) {
 	b, err := utils.ExecuteSimpleHTTPRequest(h.docStoreApiBaseURL+GTGEndpoint, h.httpClient)
+	logrus.Errorf("Healthcheck: %v", err.Error())
 	return string(b), err
 }
 
 func (h *healthcheckHandler) checkIfPublicAnnotationsApiIsReachable() (string, error) {
 	b, err := utils.ExecuteSimpleHTTPRequest(h.publicAnnotationsApiBaseURL+GTGEndpoint, h.httpClient)
+	logrus.Errorf("Healthcheck: %v", err.Error())
 	return string(b), err
 }
 
 func checkIfTopicIsPresent(h *healthcheckHandler, searchedTopic string) error {
-	body, err := getTopicsFromProxy(h)
+
+	urlStr := h.proxyAddress+"/__kafka-rest-proxy/topics"
+
+	body, err := utils.ExecuteSimpleHTTPRequest(urlStr, h.httpClient)
 	if err != nil {
-		logrus.Errorf("Healthcheck: Error reading request body: %v", err.Error())
+		logrus.Errorf("Healthcheck: %v", err.Error())
 		return err
 	}
 
@@ -158,39 +161,4 @@ func checkIfTopicIsPresent(h *healthcheckHandler, searchedTopic string) error {
 	}
 
 	return errors.New(fmt.Sprintf("Connection could be established to kafka-proxy, but topic %s was not found", searchedTopic))
-}
-
-// Connect to the proxy by requesting the topic endpoint. Return the results.
-func getTopicsFromProxy(h *healthcheckHandler) ([]byte, error) {
-	req, err := http.NewRequest("GET", h.proxyAddress+"/topics", nil)
-	if err != nil {
-		logrus.Errorf("Error creating new kafka-proxy healthcheck request: %v", err.Error())
-		return nil, err
-	}
-
-	if h.proxyRequestHeader != "" {
-		req.Header.Add("Host", h.proxyRequestHeader)
-	}
-
-	resp, err := h.httpClient.Do(req)
-	if err != nil {
-		logrus.Errorf("Healthcheck: Error executing kafka-proxy GET request: %v", err.Error())
-		return nil, err
-	}
-
-	defer func() {
-		_, err := io.Copy(ioutil.Discard, resp.Body)
-		if err != nil {
-			logrus.Warnf("message=\"couldn't read response body\" %v", err)
-		}
-		err = resp.Body.Close()
-		if err != nil {
-			logrus.Warnf("message=\"couldn't close response body\" %v", err)
-		}
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("Connecting to kafka proxy was not successful. Status: %d", resp.StatusCode))
-	}
-	return ioutil.ReadAll(resp.Body)
 }

@@ -129,11 +129,13 @@ func main() {
 
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 
-		comb := processor.NewMessageCombiner(*docStoreApiBaseURL, *docStoreApiEndpoint, *publicAnnotationsApiBaseURL, *publicAnnotationsApiEndpoint, client)
-		mf := processor.NewMessageForwarder(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *combinedTopic, &client)
+		contentConsumerConf := processor.NewQueueConsumerConfig(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *contentTopic, *kafkaConsumerGroup, *concurrentQueueProcessing)
+		metadataConsumerConf := processor.NewQueueConsumerConfig(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *metadataTopic, *kafkaConsumerGroup, *concurrentQueueProcessing)
 
-		cp := processor.NewContentQueueProcessor(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *contentTopic, *kafkaConsumerGroup, *concurrentQueueProcessing, comb, mf)
-		mp := processor.NewMetadataQueueProcessor(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *metadataTopic, *kafkaConsumerGroup, *concurrentQueueProcessing, comb, mf)
+		producerConf := processor.NewProducerConfig(*kafkaProxyAddress, *combinedTopic, *kafkaProxyRoutingHeader)
+
+		cp := processor.NewContentQueueProcessor(contentConsumerConf, producerConf, *publicAnnotationsApiBaseURL, *publicAnnotationsApiEndpoint, &client)
+		mp := processor.NewMetadataQueueProcessor(metadataConsumerConf, producerConf, *publicAnnotationsApiBaseURL, *publicAnnotationsApiEndpoint, *docStoreApiBaseURL, *docStoreApiEndpoint, &client)
 
 		contentConsumer := consumer.NewConsumer(cp.Processor.QConf, cp.ProcessMsg, &client)
 		metadataConsumer := consumer.NewConsumer(mp.Processor.QConf, mp.ProcessMsg, &client)
@@ -144,9 +146,7 @@ func main() {
 		go metadataConsumer.Start()
 		defer metadataConsumer.Stop()
 
-		// TODO too many parameters to pass -> refactor
-
-		routeRequests(port, NewCombinerHealthcheck(*kafkaProxyAddress, *kafkaProxyRoutingHeader, client, *contentTopic, *metadataTopic, *combinedTopic, *docStoreApiBaseURL, *publicAnnotationsApiBaseURL))
+		routeRequests(port, NewCombinerHealthcheck(*kafkaProxyAddress, *kafkaProxyRoutingHeader, &client, *contentTopic, *metadataTopic, *combinedTopic, *docStoreApiBaseURL, *publicAnnotationsApiBaseURL))
 	}
 
 	logrus.SetLevel(logrus.InfoLevel)
@@ -169,7 +169,8 @@ func routeRequests(port *string, healthService *healthcheckHandler) {
 		checkPostContentPublicationTopicIsFoundHealthcheck(healthService),
 		checkCombinedPublicationTopicTopicIsFoundHealthcheck(healthService),
 		checkDocumentStoreApiHealthcheck(healthService),
-		checkPublicAnnotationsApiHealthcheck(healthService)))})
+		checkPublicAnnotationsApiHealthcheck(healthService),
+	))})
 	r.Path("/__gtg").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(healthService.goodToGo)})
 
 	if err := http.ListenAndServe(":"+*port, r); err != nil {

@@ -2,20 +2,41 @@ package processor
 
 import (
 	"encoding/json"
+	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/Financial-Times/post-publication-combiner/combiner"
 	"github.com/Financial-Times/post-publication-combiner/model"
+	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/Sirupsen/logrus"
 	"github.com/dchest/uniuri"
+	"net/http"
 )
 
 // MetadataQueueProcessor is embedding the Processor structure and it knows how to handle Metadata kafka messages.
 type MetadataQueueProcessor struct {
-	Processor *QueueProcessor
+	Processor             *QueueProcessor
+	httpClient            *http.Client
+	DocStoreApiAddress    utils.ApiURL
+	AnnotationsApiAddress utils.ApiURL
 }
 
-func NewMetadataQueueProcessor(queueAddress string, routingHeader string, topic string, group string, sourceConcurrentProcessing bool, combiner *MessageCombiner, forwarder *MessageForwarder) *MetadataQueueProcessor {
-	p := NewQueueProcessor(queueAddress, routingHeader, topic, group, sourceConcurrentProcessing, combiner, forwarder)
-	return &MetadataQueueProcessor{p}
+func NewMetadataQueueProcessor(cConf consumer.QueueConfig, pConf producer.MessageProducerConfig, annApiBaseURL string, annApiEndpoint string, docStoreApiBaseURL string, docStoreApiEndpoint string, client *http.Client) *MetadataQueueProcessor {
+
+	p := NewQueueProcessor(cConf, pConf, client)
+	annAddress := utils.ApiURL{
+		BaseURL:  annApiBaseURL,
+		Endpoint: annApiEndpoint,
+	}
+	docStoreAddress := utils.ApiURL{
+		BaseURL:  docStoreApiBaseURL,
+		Endpoint: docStoreApiEndpoint,
+	}
+	return &MetadataQueueProcessor{
+		Processor:             p,
+		httpClient:            client,
+		DocStoreApiAddress:    docStoreAddress,
+		AnnotationsApiAddress: annAddress,
+	}
 }
 
 func (mqp *MetadataQueueProcessor) ProcessMsg(m consumer.Message) {
@@ -44,14 +65,14 @@ func (mqp *MetadataQueueProcessor) ProcessMsg(m consumer.Message) {
 	}
 
 	//combine data
-	combinedMSG, err := mqp.Processor.Combiner.enrichWithContent(ann)
+	combinedMSG, err := combiner.GetCombinedModelForAnnotations(mqp.DocStoreApiAddress, mqp.AnnotationsApiAddress, mqp.httpClient, ann)
 	if err != nil {
 		logrus.Errorf("%v - Error obtaining the combined message. Content couldn't get read. Message will be skipped. %v", tid, err)
 		return
 	}
 
 	//forward data
-	err = mqp.Processor.Forwarder.forwardMsg(m.Headers, &combinedMSG)
+	err = mqp.Processor.forwardMsg(m.Headers, &combinedMSG)
 	if err != nil {
 		logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
 		return

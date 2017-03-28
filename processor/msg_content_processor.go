@@ -2,21 +2,32 @@ package processor
 
 import (
 	"encoding/json"
+	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/Financial-Times/post-publication-combiner/combiner"
 	"github.com/Financial-Times/post-publication-combiner/model"
+	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/Sirupsen/logrus"
 	"github.com/dchest/uniuri"
+	"net/http"
 	"strings"
 )
 
 // ContentQueueProcessor is the implementation of the Processor interface and it knows how to communicate with Content kafka queue.
 type ContentQueueProcessor struct {
-	Processor *QueueProcessor
+	Processor             *QueueProcessor
+	httpClient            *http.Client
+	AnnotationsApiAddress utils.ApiURL
 }
 
-func NewContentQueueProcessor(queueAddress string, routingHeader string, topic string, group string, sourceConcurrentProcessing bool, combiner *MessageCombiner, forwarder *MessageForwarder) *ContentQueueProcessor {
-	p := NewQueueProcessor(queueAddress, routingHeader, topic, group, sourceConcurrentProcessing, combiner, forwarder)
-	return &ContentQueueProcessor{p}
+func NewContentQueueProcessor(cConf consumer.QueueConfig, pConf producer.MessageProducerConfig, annApiBaseURL string, annApiEndpoint string, client *http.Client) *ContentQueueProcessor {
+
+	p := NewQueueProcessor(cConf, pConf, client)
+	annAddress := utils.ApiURL{
+		BaseURL:  annApiBaseURL,
+		Endpoint: annApiEndpoint,
+	}
+	return &ContentQueueProcessor{p, client, annAddress}
 }
 
 func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
@@ -40,14 +51,14 @@ func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
 	// wordpress, brightcove, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
 	if supportedType(cm.ContentURI) {
 		//combine data
-		combinedMSG, err := cqp.Processor.Combiner.enrichWithAnnotations(cm.ContentModel)
+		combinedMSG, err := combiner.GetCombinedModelForContent(cqp.AnnotationsApiAddress, cqp.httpClient, cm.ContentModel)
 		if err != nil {
 			logrus.Errorf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped. %v", tid, err)
 			return
 		}
 
 		//forward data
-		err = cqp.Processor.Forwarder.forwardMsg(m.Headers, &combinedMSG)
+		err = cqp.Processor.forwardMsg(m.Headers, &combinedMSG)
 		if err != nil {
 			logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
 			return
