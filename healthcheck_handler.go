@@ -126,13 +126,17 @@ func (h *healthcheckHandler) checkIfCombinedPublicationTopicIsPresent() (string,
 
 func (h *healthcheckHandler) checkIfDocumentStoreIsReachable() (string, error) {
 	b, err := utils.ExecuteSimpleHTTPRequest(h.docStoreApiBaseURL+GTGEndpoint, h.httpClient)
-	logrus.Errorf("Healthcheck: %v", err.Error())
+	if err!=nil {
+		logrus.Errorf("Healthcheck: %v", err.Error())
+	}
 	return string(b), err
 }
 
 func (h *healthcheckHandler) checkIfPublicAnnotationsApiIsReachable() (string, error) {
 	b, err := utils.ExecuteSimpleHTTPRequest(h.publicAnnotationsApiBaseURL+GTGEndpoint, h.httpClient)
-	logrus.Errorf("Healthcheck: %v", err.Error())
+	if err!=nil {
+		logrus.Errorf("Healthcheck: %v", err.Error())
+	}
 	return string(b), err
 }
 
