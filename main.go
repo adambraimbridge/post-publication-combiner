@@ -153,7 +153,7 @@ func main() {
 	logrus.Infof("PostPublicationCombiner started with args %s", os.Args)
 	err := app.Run(os.Args)
 	if err != nil {
-		logrus.Errorf("App could not start, error=[%s]\n", err)
+		logrus.Errorf("App could not start, error=[%v]\n", err)
 	}
 }
 

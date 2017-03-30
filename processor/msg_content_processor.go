@@ -49,7 +49,8 @@ func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
 	}
 
 	if cm.ContentModel.UUID == "" {
-		logrus.Errorf("UUID not found after message marshalling, skiping message with ID=%v, error=%v", m.Headers["Message-Id"], err.Error())
+		logrus.Errorf("UUID not found after message marshalling, skiping message with ID=%v.", m.Headers["Message-Id"])
+		return
 	}
 
 	// wordpress, brightcove, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
