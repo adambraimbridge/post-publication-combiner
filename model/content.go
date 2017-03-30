@@ -2,7 +2,7 @@ package model
 
 type MessageContent struct {
 	ContentURI   string       `json:"contentUri"`
-	ContentModel ContentModel `json:payload""`
+	ContentModel ContentModel `json:"payload"`
 	LastModified string       `json:"lastModified"`
 }
 

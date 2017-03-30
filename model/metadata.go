@@ -9,7 +9,7 @@ type Annotations struct {
 
 //Annotation is the main struct used to create and return structures
 type Annotation struct {
-	Thing Thing `json:"thing,omitempty"`
+	Thing `json:"thing,omitempty"`
 }
 
 //Thing represents a concept being linked to

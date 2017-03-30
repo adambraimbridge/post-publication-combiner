@@ -12,6 +12,7 @@ import (
 
 const (
 	GTGEndpoint = "/__gtg"
+	ResponseOK  = "OK"
 )
 
 type healthcheckHandler struct {
@@ -112,37 +113,36 @@ func (h *healthcheckHandler) goodToGo(writer http.ResponseWriter, req *http.Requ
 }
 
 func (h *healthcheckHandler) checkIfPostMetadataPublicationTopicIsPresent() (string, error) {
-	// TODO check what should the first return string represent - adjust logging/returns accordingly
-	return "", checkIfTopicIsPresent(h, h.metadataTopic)
+	return ResponseOK, checkIfTopicIsPresent(h, h.metadataTopic)
 }
 
 func (h *healthcheckHandler) checkIfPostContentPublicationTopicIsPresent() (string, error) {
-	return "", checkIfTopicIsPresent(h, h.contentTopic)
+	return ResponseOK, checkIfTopicIsPresent(h, h.contentTopic)
 }
 
 func (h *healthcheckHandler) checkIfCombinedPublicationTopicIsPresent() (string, error) {
-	return "", checkIfTopicIsPresent(h, h.combinedTopic)
+	return ResponseOK, checkIfTopicIsPresent(h, h.combinedTopic)
 }
 
 func (h *healthcheckHandler) checkIfDocumentStoreIsReachable() (string, error) {
-	b, err := utils.ExecuteSimpleHTTPRequest(h.docStoreApiBaseURL+GTGEndpoint, h.httpClient)
-	if err!=nil {
+	_, err := utils.ExecuteSimpleHTTPRequest(h.docStoreApiBaseURL+GTGEndpoint, h.httpClient)
+	if err != nil {
 		logrus.Errorf("Healthcheck: %v", err.Error())
 	}
-	return string(b), err
+	return ResponseOK, err
 }
 
 func (h *healthcheckHandler) checkIfPublicAnnotationsApiIsReachable() (string, error) {
-	b, err := utils.ExecuteSimpleHTTPRequest(h.publicAnnotationsApiBaseURL+GTGEndpoint, h.httpClient)
-	if err!=nil {
+	_, err := utils.ExecuteSimpleHTTPRequest(h.publicAnnotationsApiBaseURL+GTGEndpoint, h.httpClient)
+	if err != nil {
 		logrus.Errorf("Healthcheck: %v", err.Error())
 	}
-	return string(b), err
+	return ResponseOK, err
 }
 
 func checkIfTopicIsPresent(h *healthcheckHandler, searchedTopic string) error {
 
-	urlStr := h.proxyAddress+"/__kafka-rest-proxy/topics"
+	urlStr := h.proxyAddress + "/__kafka-rest-proxy/topics"
 
 	body, err := utils.ExecuteSimpleHTTPRequest(urlStr, h.httpClient)
 	if err != nil {

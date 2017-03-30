@@ -82,9 +82,14 @@ func getAnnotations(uuid string, address utils.ApiURL, client *http.Client) ([]m
 		return nil, err
 	}
 
-	var ann []model.Annotation
-	if err := json.Unmarshal(b, &ann); err != nil {
+	var things []model.Thing
+	if err := json.Unmarshal(b, &things); err != nil {
 		return nil, errors.New(fmt.Sprintf("Could not unmarshall annotations for content  with uuid=%v, error=%v", uuid, err.Error()))
+	}
+
+	var ann []model.Annotation
+	for _, t := range things {
+		ann = append(ann, model.Annotation{t})
 	}
 
 	return ann, nil
