@@ -74,6 +74,7 @@ func (mqp *MetadataQueueProcessor) ProcessMsg(m consumer.Message) {
 			return
 		}
 		logrus.Printf("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)
+		return
 	}
 
 	logrus.Printf("%v - Skipped unsupported annotations with Origin-System-Id: %v. ", tid, o)
