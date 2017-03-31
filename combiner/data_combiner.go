@@ -29,9 +29,6 @@ func GetCombinedModelForContent(address utils.ApiURL, client *http.Client, conte
 
 func GetCombinedModelForAnnotations(docStoreAddress utils.ApiURL, publicAnnotationsAddress utils.ApiURL, client *http.Client, metadata model.Annotations) (model.CombinedModel, error) {
 
-	// even though we have the annotations from the kafka queue, we still need to read them from the DB to obtain the TME ids
-	// Note: more detailed checks could be introduced at this point, if we want to make sure we have the same annotations returned
-
 	if metadata.UUID == "" {
 		return model.CombinedModel{}, errors.New("Annotations have no UUID referenced. Can't deduce content for it.")
 	}
@@ -77,17 +74,21 @@ func GetCombinedModelForAnnotations(docStoreAddress utils.ApiURL, publicAnnotati
 
 func getAnnotations(uuid string, address utils.ApiURL, client *http.Client) ([]model.Annotation, error) {
 
-	b, err := utils.ExecuteHTTPRequest(uuid, address, client)
+	var ann []model.Annotation
+	b, status, err := utils.ExecuteHTTPRequest(uuid, address, client)
+
+	if status == http.StatusNotFound {
+		return ann, nil
+	}
+
 	if err != nil {
-		return nil, err
+		return ann, err
 	}
 
 	var things []model.Thing
 	if err := json.Unmarshal(b, &things); err != nil {
-		return nil, errors.New(fmt.Sprintf("Could not unmarshall annotations for content  with uuid=%v, error=%v", uuid, err.Error()))
+		return ann, errors.New(fmt.Sprintf("Could not unmarshall annotations for content  with uuid=%v, error=%v", uuid, err.Error()))
 	}
-
-	var ann []model.Annotation
 	for _, t := range things {
 		ann = append(ann, model.Annotation{t})
 	}
@@ -97,14 +98,19 @@ func getAnnotations(uuid string, address utils.ApiURL, client *http.Client) ([]m
 
 func getContent(uuid string, address utils.ApiURL, client *http.Client) (model.ContentModel, error) {
 
-	b, err := utils.ExecuteHTTPRequest(uuid, address, client)
-	if err != nil {
-		return model.ContentModel{}, err
+	var c model.ContentModel
+	b, status, err := utils.ExecuteHTTPRequest(uuid, address, client)
+
+	if status == http.StatusNotFound {
+		return c, nil
 	}
 
-	var c model.ContentModel
+	if err != nil {
+		return c, err
+	}
+
 	if err := json.Unmarshal(b, &c); err != nil {
-		return model.ContentModel{}, errors.New(fmt.Sprintf("Could not unmarshall content with uuid=%v, error=%v", uuid, err.Error()))
+		return c, errors.New(fmt.Sprintf("Could not unmarshall content with uuid=%v, error=%v", uuid, err.Error()))
 	}
 
 	return c, nil

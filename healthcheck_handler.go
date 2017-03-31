@@ -125,7 +125,7 @@ func (h *healthcheckHandler) checkIfCombinedPublicationTopicIsPresent() (string,
 }
 
 func (h *healthcheckHandler) checkIfDocumentStoreIsReachable() (string, error) {
-	_, err := utils.ExecuteSimpleHTTPRequest(h.docStoreApiBaseURL+GTGEndpoint, h.httpClient)
+	_, _, err := utils.ExecuteSimpleHTTPRequest(h.docStoreApiBaseURL+GTGEndpoint, h.httpClient)
 	if err != nil {
 		logrus.Errorf("Healthcheck: %v", err.Error())
 	}
@@ -133,7 +133,7 @@ func (h *healthcheckHandler) checkIfDocumentStoreIsReachable() (string, error) {
 }
 
 func (h *healthcheckHandler) checkIfPublicAnnotationsApiIsReachable() (string, error) {
-	_, err := utils.ExecuteSimpleHTTPRequest(h.publicAnnotationsApiBaseURL+GTGEndpoint, h.httpClient)
+	_, _, err := utils.ExecuteSimpleHTTPRequest(h.publicAnnotationsApiBaseURL+GTGEndpoint, h.httpClient)
 	if err != nil {
 		logrus.Errorf("Healthcheck: %v", err.Error())
 	}
@@ -144,7 +144,7 @@ func checkIfTopicIsPresent(h *healthcheckHandler, searchedTopic string) error {
 
 	urlStr := h.proxyAddress + "/__kafka-rest-proxy/topics"
 
-	body, err := utils.ExecuteSimpleHTTPRequest(urlStr, h.httpClient)
+	body, _, err := utils.ExecuteSimpleHTTPRequest(urlStr, h.httpClient)
 	if err != nil {
 		logrus.Errorf("Healthcheck: %v", err.Error())
 		return err

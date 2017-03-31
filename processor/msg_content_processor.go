@@ -11,6 +11,7 @@ import (
 	"github.com/dchest/uniuri"
 	"net/http"
 	"strings"
+"reflect"
 )
 
 // ContentQueueProcessor is the implementation of the Processor interface and it knows how to communicate with Content kafka queue.
@@ -48,13 +49,22 @@ func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
 		return
 	}
 
-	if cm.ContentModel.UUID == "" {
-		logrus.Errorf("UUID not found after message marshalling, skiping message with ID=%v.", m.Headers["Message-Id"])
-		return
-	}
-
 	// wordpress, brightcove, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
 	if supportedType(cm.ContentURI) {
+
+		//handle delete events
+		if reflect.DeepEqual(cm.ContentModel,model.ContentModel{}) {
+			sl := strings.Split(cm.ContentURI,"/")
+			cm.ContentModel.UUID = sl[len(sl)-1]
+			cm.ContentModel.MarkedDeleted = true
+			return
+		}
+
+		if cm.ContentModel.UUID == "" {
+			logrus.Errorf("UUID not found after message marshalling, skiping message with ID=%v.", m.Headers["Message-Id"])
+			return
+		}
+
 		//combine data
 		combinedMSG, err := combiner.GetCombinedModelForContent(cqp.AnnotationsApiAddress, cqp.httpClient, cm.ContentModel)
 		if err != nil {
