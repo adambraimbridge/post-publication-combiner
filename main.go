@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/go-fthealth/v1a"
-	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/post-publication-combiner/processor"
 	"github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/Sirupsen/logrus"
@@ -110,8 +109,19 @@ func main() {
 		Desc:   "The endpoint used for metadata retrieval.",
 		EnvVar: "PUBLIC_ANNOTATIONS_API_ENDPOINT",
 	})
+	whitelistedMetadataOriginSystemHeaders := app.Strings(cli.StringsOpt{
+		Name:   "whitelistedMetadataOriginSystemHeaders",
+		Value:  []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"},
+		Desc:   "Origin-System-Ids that are supported to be processed from the PostPublicationEvents queue.",
+		EnvVar: "WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS",
+	})
 
-	// TODO log with transaction headers
+	whitelistedContentUris := app.Strings(cli.StringsOpt{
+		Name:   "whitelistedMetadataOriginSystemHeaders",
+		Value:  []string{"methode-article-mapper", "wordpress-article-mapper", "brightcove-video-model-mapper"},
+		Desc:   "Origin-System-Ids that are supported to be processed from the PostPublicationEvents queue.",
+		EnvVar: "WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS",
+	})
 
 	app.Action = func() {
 		client := http.Client{
@@ -131,26 +141,37 @@ func main() {
 
 		contentConsumerConf := processor.NewQueueConsumerConfig(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *contentTopic, *kafkaConsumerGroup, *concurrentQueueProcessing)
 		metadataConsumerConf := processor.NewQueueConsumerConfig(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *metadataTopic, *kafkaConsumerGroup, *concurrentQueueProcessing)
-
 		producerConf := processor.NewProducerConfig(*kafkaProxyAddress, *combinedTopic, *kafkaProxyRoutingHeader)
 
-		cp := processor.NewContentQueueProcessor(contentConsumerConf, producerConf, *publicAnnotationsApiBaseURL, *publicAnnotationsApiEndpoint, &client)
-		mp := processor.NewMetadataQueueProcessor(metadataConsumerConf, producerConf, *publicAnnotationsApiBaseURL, *publicAnnotationsApiEndpoint, *docStoreApiBaseURL, *docStoreApiEndpoint, &client)
+		cp := processor.NewContentQueueProcessor(
+			contentConsumerConf,
+			producerConf,
+			*publicAnnotationsApiBaseURL,
+			*publicAnnotationsApiEndpoint,
+			&client,
+			*whitelistedContentUris,
+		)
+		cp.ProcessMessages()
 
-		contentConsumer := consumer.NewConsumer(cp.Processor.QConf, cp.ProcessMsg, &client)
-		metadataConsumer := consumer.NewConsumer(mp.Processor.QConf, mp.ProcessMsg, &client)
+		mp := processor.NewMetadataQueueProcessor(
+			metadataConsumerConf,
+			producerConf,
+			*publicAnnotationsApiBaseURL,
+			*publicAnnotationsApiEndpoint,
+			*docStoreApiBaseURL,
+			*docStoreApiEndpoint,
+			&client,
+			*whitelistedMetadataOriginSystemHeaders,
+		)
 
-		go contentConsumer.Start()
-		defer contentConsumer.Stop()
-
-		go metadataConsumer.Start()
-		defer metadataConsumer.Stop()
+		mp.ProcessMessages()
 
 		routeRequests(port, NewCombinerHealthcheck(*kafkaProxyAddress, *kafkaProxyRoutingHeader, &client, *contentTopic, *metadataTopic, *combinedTopic, *docStoreApiBaseURL, *publicAnnotationsApiBaseURL))
 	}
 
 	logrus.SetLevel(logrus.InfoLevel)
-	logrus.Infof("PostPublicationCombiner started with args %s", os.Args)
+	logrus.Infof("PostPublicationCombiner is starting with args %v", os.Args)
+
 	err := app.Run(os.Args)
 	if err != nil {
 		logrus.Errorf("App could not start, error=[%v]\n", err)

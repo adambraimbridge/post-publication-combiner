@@ -14,32 +14,35 @@ import (
 
 // MetadataQueueProcessor is embedding the Processor structure and it knows how to handle Metadata kafka messages.
 type MetadataQueueProcessor struct {
-	Processor             *QueueProcessor
+	*QueueProcessor
 	httpClient            *http.Client
 	DocStoreApiAddress    utils.ApiURL
 	AnnotationsApiAddress utils.ApiURL
+	SupportedHeaders      []string
 }
 
-func NewMetadataQueueProcessor(cConf consumer.QueueConfig, pConf producer.MessageProducerConfig, annApiBaseURL string, annApiEndpoint string, docStoreApiBaseURL string, docStoreApiEndpoint string, client *http.Client) *MetadataQueueProcessor {
+func NewMetadataQueueProcessor(cConf consumer.QueueConfig, pConf producer.MessageProducerConfig, annApiBaseURL string, annApiEndpoint string, docStoreApiBaseURL string, docStoreApiEndpoint string, client *http.Client, supportedHeaders []string) *MetadataQueueProcessor {
 
-	p := NewQueueProcessor(cConf, pConf, client)
-	annAddress := utils.ApiURL{
-		BaseURL:  annApiBaseURL,
-		Endpoint: annApiEndpoint,
+	mqp := MetadataQueueProcessor{
+		httpClient: client,
+		DocStoreApiAddress: utils.ApiURL{
+			BaseURL:  docStoreApiBaseURL,
+			Endpoint: docStoreApiEndpoint,
+		},
+		AnnotationsApiAddress: utils.ApiURL{
+			BaseURL:  annApiBaseURL,
+			Endpoint: annApiEndpoint,
+		},
+		SupportedHeaders: supportedHeaders,
 	}
-	docStoreAddress := utils.ApiURL{
-		BaseURL:  docStoreApiBaseURL,
-		Endpoint: docStoreApiEndpoint,
-	}
-	return &MetadataQueueProcessor{
-		Processor:             p,
-		httpClient:            client,
-		DocStoreApiAddress:    docStoreAddress,
-		AnnotationsApiAddress: annAddress,
-	}
+
+	p := NewQueueProcessor(cConf, mqp.processMsg, pConf, client)
+	mqp.QueueProcessor = p
+
+	return &mqp
 }
 
-func (mqp *MetadataQueueProcessor) ProcessMsg(m consumer.Message) {
+func (mqp *MetadataQueueProcessor) processMsg(m consumer.Message) {
 
 	tid, err := extractTID(m.Headers)
 	if err != nil {
@@ -48,10 +51,10 @@ func (mqp *MetadataQueueProcessor) ProcessMsg(m consumer.Message) {
 		logrus.Infof("Generated tid: %d", tid)
 	}
 	m.Headers["X-Request-Id"] = tid
-	o := m.Headers["Origin-System-Id"]
+	h := m.Headers["Origin-System-Id"]
 
 	//decide based on the origin system header - whether you want to process the message or not
-	if supportedHeaders(o) {
+	if headerIsSupported(h, mqp.SupportedHeaders) {
 		//parse message - collect data, then forward it to the next queue
 		var ann model.Annotations
 		b := []byte(m.Body)
@@ -68,7 +71,7 @@ func (mqp *MetadataQueueProcessor) ProcessMsg(m consumer.Message) {
 		}
 
 		//forward data
-		err = mqp.Processor.forwardMsg(m.Headers, &combinedMSG)
+		err = mqp.forwardMsg(m.Headers, &combinedMSG)
 		if err != nil {
 			logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
 			return
@@ -77,13 +80,15 @@ func (mqp *MetadataQueueProcessor) ProcessMsg(m consumer.Message) {
 		return
 	}
 
-	logrus.Printf("%v - Skipped unsupported annotations with Origin-System-Id: %v. ", tid, o)
+	logrus.Printf("%v - Skipped unsupported annotations with Origin-System-Id: %v. ", tid, h)
 }
 
-func supportedHeaders(header string) (supported bool) {
+func headerIsSupported(header string, supportedHeaders []string) (supported bool) {
 
-	if header == "http://cmdb.ft.com/systems/binding-service" || header == "http://cmdb.ft.com/systems/methode-web-pub" {
-		return true
+	for _, h := range supportedHeaders {
+		if h == header {
+			return true
+		}
 	}
 
 	return false

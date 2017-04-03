@@ -10,28 +10,36 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/dchest/uniuri"
 	"net/http"
+	"reflect"
 	"strings"
-"reflect"
 )
 
 // ContentQueueProcessor is the implementation of the Processor interface and it knows how to communicate with Content kafka queue.
 type ContentQueueProcessor struct {
-	Processor             *QueueProcessor
+	*QueueProcessor
 	httpClient            *http.Client
 	AnnotationsApiAddress utils.ApiURL
+	SupportedContentURIs  []string
 }
 
-func NewContentQueueProcessor(cConf consumer.QueueConfig, pConf producer.MessageProducerConfig, annApiBaseURL string, annApiEndpoint string, client *http.Client) *ContentQueueProcessor {
+func NewContentQueueProcessor(cConf consumer.QueueConfig, pConf producer.MessageProducerConfig, annApiBaseURL string, annApiEndpoint string, client *http.Client, supportedContentURIs []string) *ContentQueueProcessor {
 
-	p := NewQueueProcessor(cConf, pConf, client)
-	annAddress := utils.ApiURL{
-		BaseURL:  annApiBaseURL,
-		Endpoint: annApiEndpoint,
+	cqp := ContentQueueProcessor{
+		httpClient: client,
+		AnnotationsApiAddress: utils.ApiURL{
+			BaseURL:  annApiBaseURL,
+			Endpoint: annApiEndpoint,
+		},
+		SupportedContentURIs: supportedContentURIs,
 	}
-	return &ContentQueueProcessor{p, client, annAddress}
+
+	p := NewQueueProcessor(cConf, cqp.processMsg, pConf, client)
+	cqp.QueueProcessor = p
+
+	return &cqp
 }
 
-func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
+func (cqp *ContentQueueProcessor) processMsg(m consumer.Message) {
 
 	tid, err := extractTID(m.Headers)
 	if err != nil {
@@ -50,18 +58,18 @@ func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
 	}
 
 	// wordpress, brightcove, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
-	if supportedType(cm.ContentURI) {
+	if contentTypeIsSupported(cm.ContentURI, cqp.SupportedContentURIs) {
 
 		//handle delete events
-		if reflect.DeepEqual(cm.ContentModel,model.ContentModel{}) {
-			sl := strings.Split(cm.ContentURI,"/")
+		if reflect.DeepEqual(cm.ContentModel, model.ContentModel{}) {
+			sl := strings.Split(cm.ContentURI, "/")
 			cm.ContentModel.UUID = sl[len(sl)-1]
 			cm.ContentModel.MarkedDeleted = true
 			return
 		}
 
 		if cm.ContentModel.UUID == "" {
-			logrus.Errorf("UUID not found after message marshalling, skiping message with ID=%v.", m.Headers["Message-Id"])
+			logrus.Errorf("UUID not found after message marshalling, skipping message with ID=%v.", m.Headers["Message-Id"])
 			return
 		}
 
@@ -73,7 +81,7 @@ func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
 		}
 
 		//forward data
-		err = cqp.Processor.forwardMsg(m.Headers, &combinedMSG)
+		err = cqp.forwardMsg(m.Headers, &combinedMSG)
 		if err != nil {
 			logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
 			return
@@ -85,10 +93,12 @@ func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
 	logrus.Printf("%v - Skipped unsupported content with contentUri: %v. ", tid, cm.ContentURI)
 }
 
-func supportedType(contentUri string) (supported bool) {
+func contentTypeIsSupported(contentUri string, supportedContentURIs []string) (supported bool) {
 
-	if strings.Contains(contentUri, "methode-article-mapper") || strings.Contains(contentUri, "wordpress-article-mapper") || strings.Contains(contentUri, "brightcove-video-model-mapper") {
-		return true
+	for _, uri := range supportedContentURIs {
+		if strings.Contains(contentUri, uri) {
+			return true
+		}
 	}
 
 	return false
