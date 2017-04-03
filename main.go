@@ -163,7 +163,6 @@ func main() {
 			&client,
 			*whitelistedMetadataOriginSystemHeaders,
 		)
-
 		mp.ProcessMessages()
 
 		routeRequests(port, NewCombinerHealthcheck(*kafkaProxyAddress, *kafkaProxyRoutingHeader, &client, *contentTopic, *metadataTopic, *combinedTopic, *docStoreApiBaseURL, *publicAnnotationsApiBaseURL))

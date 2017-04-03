@@ -8,6 +8,10 @@ import (
 	"github.com/Financial-Times/post-publication-combiner/model"
 	"github.com/Sirupsen/logrus"
 	"net/http"
+"sync"
+"os"
+"os/signal"
+"syscall"
 )
 
 type Processor interface {
@@ -50,10 +54,22 @@ func (qp *QueueProcessor) ProcessMessages() {
 
 	if qp == nil {
 		logrus.Errorf("Consumer is not created. Messages won't be processed.")
+		return
 	}
 
-	go qp.MessageConsumer.Start()
-	defer qp.MessageConsumer.Stop()
+	var consumerWaitGroup sync.WaitGroup
+	consumerWaitGroup.Add(1)
+
+	go func() {
+		qp.MessageConsumer.Start()
+		consumerWaitGroup.Done()
+	}()
+
+	ch := make(chan os.Signal)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	<-ch
+	qp.MessageConsumer.Stop()
+	consumerWaitGroup.Wait()
 
 }
 
