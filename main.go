@@ -47,11 +47,17 @@ func main() {
 		Desc:   "Address used by the queue consumer and producer to connect to the queue",
 		EnvVar: "KAFKA_PROXY_ADDR",
 	})
-	kafkaConsumerGroup := app.String(cli.StringOpt{
-		Name:   "kafkaConsumerGroup",
-		Value:  "post-publication-combiner",
-		Desc:   "Group used to read the messages from the queue",
-		EnvVar: "KAFKA_PROXY_CONSUMER_GROUP",
+	kafkaContentConsumerGroup := app.String(cli.StringOpt{
+		Name:   "kafkaContentTopicConsumerGroup",
+		Value:  "content-post-publication-combiner",
+		Desc:   "Group used to read the messages from the content queue",
+		EnvVar: "KAFKA_PROXY_CONTENT_CONSUMER_GROUP",
+	})
+	kafkaMetadataConsumerGroup := app.String(cli.StringOpt{
+		Name:   "kafkaMetadataTopicConsumerGroup",
+		Value:  "metadata-post-publication-combiner",
+		Desc:   "Group used to read the messages from the metadata queue",
+		EnvVar: "KAFKA_PROXY_METADATA_CONSUMER_GROUP",
 	})
 	kafkaProxyRoutingHeader := app.String(cli.StringOpt{
 		Name:   "kafkaProxyHeader",
@@ -117,10 +123,10 @@ func main() {
 	})
 
 	whitelistedContentUris := app.Strings(cli.StringsOpt{
-		Name:   "whitelistedMetadataOriginSystemHeaders",
+		Name:   "whitelistedContentURIs",
 		Value:  []string{"methode-article-mapper", "wordpress-article-mapper", "brightcove-video-model-mapper"},
-		Desc:   "Origin-System-Ids that are supported to be processed from the PostPublicationEvents queue.",
-		EnvVar: "WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS",
+		Desc:   "Space separated list with content URI substrings - to identify accepted content types.",
+		EnvVar: "WHITELISTED_CONTENT_URI",
 	})
 
 	app.Action = func() {
@@ -139,8 +145,8 @@ func main() {
 
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 
-		contentConsumerConf := processor.NewQueueConsumerConfig(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *contentTopic, *kafkaConsumerGroup, *concurrentQueueProcessing)
-		metadataConsumerConf := processor.NewQueueConsumerConfig(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *metadataTopic, *kafkaConsumerGroup, *concurrentQueueProcessing)
+		contentConsumerConf := processor.NewQueueConsumerConfig(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *contentTopic, *kafkaContentConsumerGroup, *concurrentQueueProcessing)
+		metadataConsumerConf := processor.NewQueueConsumerConfig(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *metadataTopic, *kafkaMetadataConsumerGroup, *concurrentQueueProcessing)
 		producerConf := processor.NewProducerConfig(*kafkaProxyAddress, *combinedTopic, *kafkaProxyRoutingHeader)
 
 		cp := processor.NewContentQueueProcessor(
