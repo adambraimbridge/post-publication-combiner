@@ -151,7 +151,8 @@ func main() {
 			&client,
 			*whitelistedContentUris,
 		)
-		cp.ProcessMessages()
+		go cp.MessageConsumer.Start()
+		defer cp.MessageConsumer.Stop()
 
 		mp := processor.NewMetadataQueueProcessor(
 			metadataConsumerConf,
@@ -163,7 +164,8 @@ func main() {
 			&client,
 			*whitelistedMetadataOriginSystemHeaders,
 		)
-		mp.ProcessMessages()
+		go mp.MessageConsumer.Start()
+		defer mp.MessageConsumer.Stop()
 
 		routeRequests(port, NewCombinerHealthcheck(*kafkaProxyAddress, *kafkaProxyRoutingHeader, &client, *contentTopic, *metadataTopic, *combinedTopic, *docStoreApiBaseURL, *publicAnnotationsApiBaseURL))
 	}

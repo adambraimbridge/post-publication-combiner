@@ -6,16 +6,11 @@ import (
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/post-publication-combiner/model"
-	"github.com/Sirupsen/logrus"
 	"net/http"
-"sync"
-"os"
-"os/signal"
-"syscall"
 )
 
 type Processor interface {
-	ProcessMessages()
+	ProcessMsg(m consumer.Message)
 }
 
 // QueueProcessor is a structure meant to process and forward messages to a kafka queue
@@ -48,29 +43,6 @@ func NewProducerConfig(proxyAddress string, topic string, routingHeader string) 
 		Topic: topic,
 		Queue: routingHeader,
 	}
-}
-
-func (qp *QueueProcessor) ProcessMessages() {
-
-	if qp == nil {
-		logrus.Errorf("Consumer is not created. Messages won't be processed.")
-		return
-	}
-
-	var consumerWaitGroup sync.WaitGroup
-	consumerWaitGroup.Add(1)
-
-	go func() {
-		qp.MessageConsumer.Start()
-		consumerWaitGroup.Done()
-	}()
-
-	ch := make(chan os.Signal)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-	<-ch
-	qp.MessageConsumer.Stop()
-	consumerWaitGroup.Wait()
-
 }
 
 func extractTID(headers map[string]string) (string, error) {

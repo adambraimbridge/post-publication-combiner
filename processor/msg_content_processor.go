@@ -33,13 +33,13 @@ func NewContentQueueProcessor(cConf consumer.QueueConfig, pConf producer.Message
 		SupportedContentURIs: supportedContentURIs,
 	}
 
-	p := NewQueueProcessor(cConf, cqp.processMsg, pConf, client)
+	p := NewQueueProcessor(cConf, cqp.ProcessMsg, pConf, client)
 	cqp.QueueProcessor = p
 
 	return &cqp
 }
 
-func (cqp *ContentQueueProcessor) processMsg(m consumer.Message) {
+func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
 
 	tid, err := extractTID(m.Headers)
 	if err != nil {

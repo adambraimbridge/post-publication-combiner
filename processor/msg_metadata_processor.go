@@ -36,13 +36,13 @@ func NewMetadataQueueProcessor(cConf consumer.QueueConfig, pConf producer.Messag
 		SupportedHeaders: supportedHeaders,
 	}
 
-	p := NewQueueProcessor(cConf, mqp.processMsg, pConf, client)
+	p := NewQueueProcessor(cConf, mqp.ProcessMsg, pConf, client)
 	mqp.QueueProcessor = p
 
 	return &mqp
 }
 
-func (mqp *MetadataQueueProcessor) processMsg(m consumer.Message) {
+func (mqp *MetadataQueueProcessor) ProcessMsg(m consumer.Message) {
 
 	tid, err := extractTID(m.Headers)
 	if err != nil {
