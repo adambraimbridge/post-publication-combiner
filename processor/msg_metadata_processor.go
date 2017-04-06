@@ -8,7 +8,6 @@ import (
 	"github.com/Financial-Times/post-publication-combiner/model"
 	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/Sirupsen/logrus"
-	"github.com/dchest/uniuri"
 	"net/http"
 )
 
@@ -44,17 +43,12 @@ func NewMetadataQueueProcessor(cConf consumer.QueueConfig, pConf producer.Messag
 
 func (mqp *MetadataQueueProcessor) ProcessMsg(m consumer.Message) {
 
-	tid, err := extractTID(m.Headers)
-	if err != nil {
-		logrus.Infof("Couldn't extract transaction id: %s", err.Error())
-		tid = "tid_" + uniuri.NewLen(10) + "_post_publication_combiner"
-		logrus.Infof("Generated tid: %d", tid)
-	}
+	tid := extractTID(m.Headers)
 	m.Headers["X-Request-Id"] = tid
 	h := m.Headers["Origin-System-Id"]
 
 	//decide based on the origin system header - whether you want to process the message or not
-	if headerIsSupported(h, mqp.SupportedHeaders) {
+	if contains(mqp.SupportedHeaders, h) {
 		//parse message - collect data, then forward it to the next queue
 		var ann model.Annotations
 		b := []byte(m.Body)
@@ -81,15 +75,4 @@ func (mqp *MetadataQueueProcessor) ProcessMsg(m consumer.Message) {
 	}
 
 	logrus.Printf("%v - Skipped unsupported annotations with Origin-System-Id: %v. ", tid, h)
-}
-
-func headerIsSupported(header string, supportedHeaders []string) (supported bool) {
-
-	for _, h := range supportedHeaders {
-		if h == header {
-			return true
-		}
-	}
-
-	return false
 }

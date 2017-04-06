@@ -15,7 +15,11 @@ type ApiURL struct {
 	Endpoint string
 }
 
-func ExecuteHTTPRequest(uuid string, apiUrl ApiURL, httpClient *http.Client) (b []byte, status int, err error) {
+type Client interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+func ExecuteHTTPRequest(uuid string, apiUrl ApiURL, httpClient Client) (b []byte, status int, err error) {
 
 	urlStr := apiUrl.BaseURL + apiUrl.Endpoint
 
@@ -26,11 +30,11 @@ func ExecuteHTTPRequest(uuid string, apiUrl ApiURL, httpClient *http.Client) (b 
 	return executeHTTPRequest(urlStr, httpClient)
 }
 
-func ExecuteSimpleHTTPRequest(urlStr string, httpClient *http.Client) (b []byte, status int, err error) {
+func ExecuteSimpleHTTPRequest(urlStr string, httpClient Client) (b []byte, status int, err error) {
 	return executeHTTPRequest(urlStr, httpClient)
 }
 
-func executeHTTPRequest(urlStr string, httpClient *http.Client) (b []byte, status int, err error) {
+func executeHTTPRequest(urlStr string, httpClient Client) (b []byte, status int, err error) {
 
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
@@ -39,7 +43,7 @@ func executeHTTPRequest(urlStr string, httpClient *http.Client) (b []byte, statu
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, resp.StatusCode, errors.New(fmt.Sprintf("Error executing requests for url=%s , error=%v", urlStr, err))
+		return nil, resp.StatusCode, errors.New(fmt.Sprintf("Error executing requests for url=%s, error=%v", urlStr, err))
 	}
 
 	defer cleanUp(resp)

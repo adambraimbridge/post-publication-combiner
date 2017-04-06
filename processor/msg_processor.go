@@ -2,11 +2,16 @@ package processor
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/post-publication-combiner/model"
+	"github.com/Sirupsen/logrus"
+	"github.com/dchest/uniuri"
 	"net/http"
+)
+
+const (
+	CombinerMessageType = "cms-combined-content-published"
 )
 
 type Processor interface {
@@ -29,11 +34,10 @@ func NewQueueProcessor(cConf consumer.QueueConfig, handleFunc func(m consumer.Me
 
 func NewQueueConsumerConfig(queueAddress string, routingHeader string, topic string, group string, sourceConcurrentProcessing bool) consumer.QueueConfig {
 	return consumer.QueueConfig{
-		Addrs:                []string{queueAddress},
-		Group:                group,
-		Topic:                topic,
-		Queue:                routingHeader,
-		ConcurrentProcessing: sourceConcurrentProcessing,
+		Addrs: []string{queueAddress},
+		Group: group,
+		Topic: topic,
+		Queue: routingHeader,
 	}
 }
 
@@ -45,12 +49,27 @@ func NewProducerConfig(proxyAddress string, topic string, routingHeader string) 
 	}
 }
 
-func extractTID(headers map[string]string) (string, error) {
-	header := headers["X-Request-Id"]
-	if header == "" {
-		return "", errors.New("X-Request-Id header could not be found.")
+func extractTID(headers map[string]string) string {
+	tid := headers["X-Request-Id"]
+
+	if tid == "" {
+		logrus.Infof("Couldn't extract transaction id - X-Request-Id header could not be found.")
+		tid = "tid_" + uniuri.NewLen(10) + "_post_publication_combiner"
+		logrus.Infof("Generated tid: %d", tid)
 	}
-	return header, nil
+
+	return tid
+}
+
+func contains(array []string, element string) bool {
+
+	for _, e := range array {
+		if e == element {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (p *QueueProcessor) forwardMsg(headers map[string]string, model *model.CombinedModel) error {
@@ -60,6 +79,6 @@ func (p *QueueProcessor) forwardMsg(headers map[string]string, model *model.Comb
 		return err
 	}
 	// add special message type
-	headers["Message-Type"] = "cms-combined-content-published"
+	headers["Message-Type"] = CombinerMessageType
 	return p.MsgProducer.SendMessage(model.UUID, producer.Message{Headers: headers, Body: string(b)})
 }

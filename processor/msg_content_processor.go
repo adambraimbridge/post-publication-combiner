@@ -8,7 +8,6 @@ import (
 	"github.com/Financial-Times/post-publication-combiner/model"
 	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/Sirupsen/logrus"
-	"github.com/dchest/uniuri"
 	"net/http"
 	"reflect"
 	"strings"
@@ -41,12 +40,7 @@ func NewContentQueueProcessor(cConf consumer.QueueConfig, pConf producer.Message
 
 func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
 
-	tid, err := extractTID(m.Headers)
-	if err != nil {
-		logrus.Infof("Couldn't extract transaction id: %s", err.Error())
-		tid = "tid_" + uniuri.NewLen(10) + "_post_publication_combiner"
-		logrus.Infof("Generated tid: %d", tid)
-	}
+	tid := extractTID(m.Headers)
 	m.Headers["X-Request-Id"] = tid
 
 	//parse message - collect data, then forward it to the next queue
@@ -58,7 +52,7 @@ func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
 	}
 
 	// wordpress, brightcove, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
-	if contentTypeIsSupported(cm.ContentURI, cqp.SupportedContentURIs) {
+	if contains(cqp.SupportedContentURIs, cm.ContentURI) {
 
 		//handle delete events
 		if reflect.DeepEqual(cm.ContentModel, model.ContentModel{}) {
@@ -91,15 +85,4 @@ func (cqp *ContentQueueProcessor) ProcessMsg(m consumer.Message) {
 	}
 
 	logrus.Printf("%v - Skipped unsupported content with contentUri: %v. ", tid, cm.ContentURI)
-}
-
-func contentTypeIsSupported(contentUri string, supportedContentURIs []string) (supported bool) {
-
-	for _, uri := range supportedContentURIs {
-		if strings.Contains(contentUri, uri) {
-			return true
-		}
-	}
-
-	return false
 }
