@@ -1,5 +1,7 @@
 # post-publication-combiner
 
+[![Circle CI](https://circleci.com/gh/Financial-Times/post-publication-combiner/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/post-publication-combiner/tree/master)[![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/post-publication-combiner)](https://goreportcard.com/report/github.com/Financial-Times/post-publication-combiner) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/post-publication-combiner/badge.svg)](https://coveralls.io/github/Financial-Times/post-publication-combiner)
+
 ## Introduction
 This service builds combined messages (content + v1 annotations) based on events received from PostMetadataPublicationEvents or PostPublicationEvents.  
 The combined message is then sent to the CombinedPostPublicationEvents kafka queue.

@@ -5,40 +5,60 @@ import (
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/post-publication-combiner/model"
+	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/Sirupsen/logrus"
 	"github.com/dchest/uniuri"
+	"github.com/golang/go/src/pkg/fmt"
 	"net/http"
+	"reflect"
+	"strings"
 )
 
 const (
 	CombinerMessageType = "cms-combined-content-published"
 )
 
+// MsgProcessor is a structure meant to process and forward messages to a kafka queue
+
 type Processor interface {
-	ProcessMsg(m consumer.Message)
+	ProcessMessages()
 }
 
-// QueueProcessor is a structure meant to process and forward messages to a kafka queue
-type QueueProcessor struct {
-	MessageConsumer consumer.MessageConsumer
-	MsgProducer     producer.MessageProducer
+type MsgProcessor struct {
+	src          <-chan *KafkaQMessage
+	client       *http.Client
+	config       MsgProcessorConfig
+	DataCombiner DataCombinerI
+	MsgProducer  producer.MessageProducer
 }
 
-func NewQueueProcessor(cConf consumer.QueueConfig, handleFunc func(m consumer.Message), pConf producer.MessageProducerConfig, cl *http.Client) *QueueProcessor {
-
-	p := producer.NewMessageProducerWithHTTPClient(pConf, cl)
-	c := consumer.NewConsumer(cConf, handleFunc, cl)
-
-	return &QueueProcessor{c, p}
+type MsgProcessorConfig struct {
+	SupportedContentURIs []string
+	SupportedHeaders     []string
+	ContentTopic         string
+	MetadataTopic        string
 }
 
-func NewQueueConsumerConfig(queueAddress string, routingHeader string, topic string, group string, sourceConcurrentProcessing bool) consumer.QueueConfig {
-	return consumer.QueueConfig{
-		Addrs: []string{queueAddress},
-		Group: group,
-		Topic: topic,
-		Queue: routingHeader,
+func NewMsgProcessorConfig(supportedURIs []string, supportedHeaders []string, contentTopic string, metadataTopic string) MsgProcessorConfig {
+	return MsgProcessorConfig{
+		SupportedContentURIs: supportedURIs,
+		SupportedHeaders:     supportedHeaders,
+		ContentTopic:         contentTopic,
+		MetadataTopic:        metadataTopic,
 	}
+}
+
+func NewMsgProcessor(prodConf producer.MessageProducerConfig, srcCh <-chan *KafkaQMessage, docStoreApiUrl utils.ApiURL, annApiUrl utils.ApiURL, c *http.Client, config MsgProcessorConfig) *MsgProcessor {
+	p := producer.NewMessageProducerWithHTTPClient(prodConf, c)
+
+	var cRetriever contentRetrieverI = dataRetriever{docStoreApiUrl, c}
+	var mRetriever metadataRetrieverI = dataRetriever{annApiUrl, c}
+
+	var combiner DataCombinerI = DataCombiner{
+		ContentRetriever:  cRetriever,
+		MetadataRetriever: mRetriever,
+	}
+	return &MsgProcessor{src: srcCh, MsgProducer: p, config: config, client: c, DataCombiner: combiner}
 }
 
 func NewProducerConfig(proxyAddress string, topic string, routingHeader string) producer.MessageProducerConfig {
@@ -47,6 +67,113 @@ func NewProducerConfig(proxyAddress string, topic string, routingHeader string) 
 		Topic: topic,
 		Queue: routingHeader,
 	}
+}
+
+func (p *MsgProcessor) ProcessMessages() {
+	for {
+		m := <-p.src
+		fmt.Printf("topic: %v and msg type: %v", p.config.ContentTopic, m.msgType)
+		if m.msgType == p.config.ContentTopic {
+			p.processContentMsg(m.msg)
+		} else if m.msgType == p.config.MetadataTopic {
+			p.processMetadataMsg(m.msg)
+		}
+	}
+}
+
+func (p *MsgProcessor) processContentMsg(m consumer.Message) {
+
+	tid := extractTID(m.Headers)
+	m.Headers["X-Request-Id"] = tid
+
+	//parse message - collect data, then forward it to the next queue
+	var cm model.MessageContent
+	b := []byte(m.Body)
+	if err := json.Unmarshal(b, &cm); err != nil {
+		logrus.Errorf("Could not unmarshall message with TID=%v, error=%v", tid, err.Error())
+		return
+	}
+
+	// wordpress, brightcove, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
+	if contains(p.config.SupportedContentURIs, cm.ContentURI) {
+
+		//handle delete events
+		if reflect.DeepEqual(cm.ContentModel, model.ContentModel{}) {
+			sl := strings.Split(cm.ContentURI, "/")
+			cm.ContentModel.UUID = sl[len(sl)-1]
+			cm.ContentModel.MarkedDeleted = true
+		}
+
+		if cm.ContentModel.UUID == "" {
+			logrus.Errorf("UUID not found after message marshalling, skipping message with TID=%v.", tid)
+			return
+		}
+
+		//combine data
+		combinedMSG, err := p.DataCombiner.GetCombinedModelForContent(cm.ContentModel)
+		if err != nil {
+			logrus.Errorf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped. %v", tid, err)
+			return
+		}
+
+		//forward data
+		err = p.forwardMsg(m.Headers, &combinedMSG)
+		if err != nil {
+			logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
+			return
+		}
+		logrus.Infof("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)
+		return
+	}
+
+	logrus.Infof("%v - Skipped unsupported content with contentUri: %v. ", tid, cm.ContentURI)
+}
+
+func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
+
+	tid := extractTID(m.Headers)
+	m.Headers["X-Request-Id"] = tid
+	h := m.Headers["Origin-System-Id"]
+
+	//decide based on the origin system header - whether you want to process the message or not
+	if contains(p.config.SupportedHeaders, h) {
+		//parse message - collect data, then forward it to the next queue
+		var ann model.Annotations
+		b := []byte(m.Body)
+		if err := json.Unmarshal(b, &ann); err != nil {
+			logrus.Errorf("Could not unmarshall message with TID=%v, error=%v", tid, err.Error())
+			return
+		}
+
+		//combine data
+		combinedMSG, err := p.DataCombiner.GetCombinedModelForAnnotations(ann)
+		if err != nil {
+			logrus.Errorf("%v - Error obtaining the combined message. Content couldn't get read. Message will be skipped. %v", tid, err)
+			return
+		}
+
+		//forward data
+		err = p.forwardMsg(m.Headers, &combinedMSG)
+		if err != nil {
+			logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
+			return
+		}
+		logrus.Infof("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)
+		return
+	}
+
+	logrus.Infof("%v - Skipped unsupported annotations with Origin-System-Id: %v. ", tid, h)
+}
+
+func (p *MsgProcessor) forwardMsg(headers map[string]string, model *model.CombinedModel) error {
+	// marshall message
+	b, err := json.Marshal(model)
+	if err != nil {
+		return err
+	}
+	// add special message type
+	headers["Message-Type"] = CombinerMessageType
+	return p.MsgProducer.SendMessage(model.UUID, producer.Message{Headers: headers, Body: string(b)})
 }
 
 func extractTID(headers map[string]string) string {
@@ -64,21 +191,10 @@ func extractTID(headers map[string]string) string {
 func contains(array []string, element string) bool {
 
 	for _, e := range array {
-		if e == element {
+		if strings.Contains(element, e) {
 			return true
 		}
 	}
 
 	return false
-}
-
-func (p *QueueProcessor) forwardMsg(headers map[string]string, model *model.CombinedModel) error {
-	// marshall message
-	b, err := json.Marshal(model)
-	if err != nil {
-		return err
-	}
-	// add special message type
-	headers["Message-Type"] = CombinerMessageType
-	return p.MsgProducer.SendMessage(model.UUID, producer.Message{Headers: headers, Body: string(b)})
 }

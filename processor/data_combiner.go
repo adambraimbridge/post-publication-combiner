@@ -1,4 +1,4 @@
-package combiner
+package processor
 
 import (
 	"encoding/json"
@@ -9,13 +9,36 @@ import (
 	"net/http"
 )
 
-func GetCombinedModelForContent(address utils.ApiURL, client *http.Client, content model.ContentModel) (model.CombinedModel, error) {
+type DataCombinerI interface {
+	GetCombinedModelForContent(content model.ContentModel) (model.CombinedModel, error)
+	GetCombinedModelForAnnotations(metadata model.Annotations) (model.CombinedModel, error)
+}
+
+type DataCombiner struct {
+	ContentRetriever  contentRetrieverI
+	MetadataRetriever metadataRetrieverI
+}
+
+type contentRetrieverI interface {
+	getContent(uuid string) (model.ContentModel, error)
+}
+
+type metadataRetrieverI interface {
+	getAnnotations(uuid string) ([]model.Annotation, error)
+}
+
+type dataRetriever struct {
+	Address utils.ApiURL
+	client  utils.Client
+}
+
+func (c DataCombiner) GetCombinedModelForContent(content model.ContentModel) (model.CombinedModel, error) {
 
 	if content.UUID == "" {
 		return model.CombinedModel{}, errors.New("Content has no UUID provided. Can't deduce annotations for it.")
 	}
 
-	ann, err := getAnnotations(content.UUID, address, client)
+	ann, err := c.MetadataRetriever.getAnnotations(content.UUID)
 	if err != nil {
 		return model.CombinedModel{}, err
 	}
@@ -27,7 +50,7 @@ func GetCombinedModelForContent(address utils.ApiURL, client *http.Client, conte
 	}, nil
 }
 
-func GetCombinedModelForAnnotations(docStoreAddress utils.ApiURL, publicAnnotationsAddress utils.ApiURL, client *http.Client, metadata model.Annotations) (model.CombinedModel, error) {
+func (dc DataCombiner) GetCombinedModelForAnnotations(metadata model.Annotations) (model.CombinedModel, error) {
 
 	if metadata.UUID == "" {
 		return model.CombinedModel{}, errors.New("Annotations have no UUID referenced. Can't deduce content for it.")
@@ -46,12 +69,12 @@ func GetCombinedModelForAnnotations(docStoreAddress utils.ApiURL, publicAnnotati
 	aCh := make(chan annResponse)
 
 	go func() {
-		d, err := getAnnotations(metadata.UUID, publicAnnotationsAddress, client)
+		d, err := dc.MetadataRetriever.getAnnotations(metadata.UUID)
 		aCh <- annResponse{d, err}
 	}()
 
 	go func() {
-		d, err := getContent(metadata.UUID, docStoreAddress, client)
+		d, err := dc.ContentRetriever.getContent(metadata.UUID)
 		cCh <- cResponse{d, err}
 	}()
 
@@ -72,10 +95,10 @@ func GetCombinedModelForAnnotations(docStoreAddress utils.ApiURL, publicAnnotati
 	}, nil
 }
 
-func getAnnotations(uuid string, address utils.ApiURL, client *http.Client) ([]model.Annotation, error) {
+func (dr dataRetriever) getAnnotations(uuid string) ([]model.Annotation, error) {
 
 	var ann []model.Annotation
-	b, status, err := utils.ExecuteHTTPRequest(uuid, address, client)
+	b, status, err := utils.ExecuteHTTPRequest(uuid, dr.Address, dr.client)
 
 	if status == http.StatusNotFound {
 		return ann, nil
@@ -87,7 +110,7 @@ func getAnnotations(uuid string, address utils.ApiURL, client *http.Client) ([]m
 
 	var things []model.Thing
 	if err := json.Unmarshal(b, &things); err != nil {
-		return ann, errors.New(fmt.Sprintf("Could not unmarshall annotations for content  with uuid=%v, error=%v", uuid, err.Error()))
+		return ann, errors.New(fmt.Sprintf("Could not unmarshall annotations for content with uuid=%v, error=%v", uuid, err.Error()))
 	}
 	for _, t := range things {
 		ann = append(ann, model.Annotation{t})
@@ -96,10 +119,10 @@ func getAnnotations(uuid string, address utils.ApiURL, client *http.Client) ([]m
 	return ann, nil
 }
 
-func getContent(uuid string, address utils.ApiURL, client *http.Client) (model.ContentModel, error) {
+func (dr dataRetriever) getContent(uuid string) (model.ContentModel, error) {
 
 	var c model.ContentModel
-	b, status, err := utils.ExecuteHTTPRequest(uuid, address, client)
+	b, status, err := utils.ExecuteHTTPRequest(uuid, dr.Address, dr.client)
 
 	if status == http.StatusNotFound {
 		return c, nil

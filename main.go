@@ -3,7 +3,9 @@ package main
 import (
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/go-fthealth/v1a"
+	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/post-publication-combiner/processor"
+	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/handlers"
@@ -64,12 +66,6 @@ func main() {
 		Value:  "kafka",
 		Desc:   "Kafka proxy header - used for vulcan routing.",
 		EnvVar: "KAFKA_PROXY_HOST_HEADER",
-	})
-	concurrentQueueProcessing := app.Bool(cli.BoolOpt{
-		Name:   "concurrent-queue-processing",
-		Value:  false,
-		Desc:   "Whether the consumers use concurrent processing for the messages",
-		EnvVar: "KAFKA_PROXY_CONCURRENT_PROCESSING",
 	})
 
 	graphiteTCPAddress := app.String(cli.StringOpt{
@@ -145,33 +141,50 @@ func main() {
 
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 
-		contentConsumerConf := processor.NewQueueConsumerConfig(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *contentTopic, *kafkaContentConsumerGroup, *concurrentQueueProcessing)
-		metadataConsumerConf := processor.NewQueueConsumerConfig(*kafkaProxyAddress, *kafkaProxyRoutingHeader, *metadataTopic, *kafkaMetadataConsumerGroup, *concurrentQueueProcessing)
-		producerConf := processor.NewProducerConfig(*kafkaProxyAddress, *combinedTopic, *kafkaProxyRoutingHeader)
+		//create channel that will hold the consumed messaged
+		// create 1 channel - let's say a single element channel - MSG
+		ch := make(chan *processor.KafkaQMessage, 100)
 
-		cp := processor.NewContentQueueProcessor(
-			contentConsumerConf,
-			producerConf,
-			*publicAnnotationsApiBaseURL,
-			*publicAnnotationsApiEndpoint,
-			&client,
+		// create 2 consumers, which put messages into the channel above
+		cConf := consumer.QueueConfig{
+			Addrs: []string{*kafkaProxyAddress},
+			Group: *kafkaContentConsumerGroup,
+			Topic: *contentTopic,
+			Queue: *kafkaProxyRoutingHeader,
+		}
+
+		cc := processor.NewKafkaQConsumer(cConf, ch, &client)
+		go cc.Consumer.Start()
+		defer cc.Consumer.Stop()
+
+		mConf := consumer.QueueConfig{
+			Addrs: []string{*kafkaProxyAddress},
+			Group: *kafkaMetadataConsumerGroup,
+			Topic: *metadataTopic,
+			Queue: *kafkaProxyRoutingHeader,
+		}
+		mc := processor.NewKafkaQConsumer(mConf, ch, &client)
+		go mc.Consumer.Start()
+		defer mc.Consumer.Stop()
+
+		// create 1 processor - get it's elements from the channel
+		// create 1 producer - the processor forwards the messages to the consumer
+		pQConf := processor.NewProducerConfig(*kafkaProxyAddress, *combinedTopic, *kafkaProxyRoutingHeader)
+		processorConf := processor.NewMsgProcessorConfig(
 			*whitelistedContentUris,
-		)
-		go cp.MessageConsumer.Start()
-		defer cp.MessageConsumer.Stop()
-
-		mp := processor.NewMetadataQueueProcessor(
-			metadataConsumerConf,
-			producerConf,
-			*publicAnnotationsApiBaseURL,
-			*publicAnnotationsApiEndpoint,
-			*docStoreApiBaseURL,
-			*docStoreApiEndpoint,
-			&client,
 			*whitelistedMetadataOriginSystemHeaders,
+			*contentTopic,
+			*metadataTopic,
 		)
-		go mp.MessageConsumer.Start()
-		defer mp.MessageConsumer.Stop()
+
+		msgProcessor := processor.NewMsgProcessor(
+			pQConf,
+			ch,
+			utils.ApiURL{*docStoreApiBaseURL, *docStoreApiEndpoint},
+			utils.ApiURL{*publicAnnotationsApiBaseURL, *publicAnnotationsApiEndpoint},
+			&client,
+			processorConf)
+		go msgProcessor.ProcessMessages()
 
 		routeRequests(port, NewCombinerHealthcheck(*kafkaProxyAddress, *kafkaProxyRoutingHeader, &client, *contentTopic, *metadataTopic, *combinedTopic, *docStoreApiBaseURL, *publicAnnotationsApiBaseURL))
 	}

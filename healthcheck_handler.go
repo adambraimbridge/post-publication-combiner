@@ -16,7 +16,7 @@ const (
 )
 
 type healthcheckHandler struct {
-	httpClient                  *http.Client
+	httpClient                  utils.Client
 	proxyAddress                string
 	proxyRequestHeader          string
 	metadataTopic               string
@@ -26,7 +26,7 @@ type healthcheckHandler struct {
 	publicAnnotationsApiBaseURL string
 }
 
-func NewCombinerHealthcheck(proxyAddress string, proxyHeader string, client *http.Client, metadataTopic string, contentTopic string, combinedTopic string, docStoreApiURL string, publicAnnotationsAPIURL string) *healthcheckHandler {
+func NewCombinerHealthcheck(proxyAddress string, proxyHeader string, client utils.Client, metadataTopic string, contentTopic string, combinedTopic string, docStoreApiURL string, publicAnnotationsAPIURL string) *healthcheckHandler {
 	return &healthcheckHandler{
 		httpClient:                  client,
 		proxyAddress:                proxyAddress,
@@ -154,7 +154,7 @@ func checkIfTopicIsPresent(h *healthcheckHandler, searchedTopic string) error {
 
 	err = json.Unmarshal(body, &topics)
 	if err != nil {
-		logrus.Errorf("Connection could be established to kafka-proxy, but a parsing error occured and topic could not be found. %v", err.Error())
+		logrus.Errorf("Connection could be established to kafka-proxy, but a parsing error occurred and topic could not be found. %v", err.Error())
 		return err
 	}
 
