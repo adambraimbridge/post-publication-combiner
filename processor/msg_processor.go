@@ -8,7 +8,6 @@ import (
 	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/Sirupsen/logrus"
 	"github.com/dchest/uniuri"
-	"github.com/golang/go/src/pkg/fmt"
 	"net/http"
 	"reflect"
 	"strings"
@@ -72,7 +71,6 @@ func NewProducerConfig(proxyAddress string, topic string, routingHeader string) 
 func (p *MsgProcessor) ProcessMessages() {
 	for {
 		m := <-p.src
-		fmt.Printf("topic: %v and msg type: %v", p.config.ContentTopic, m.msgType)
 		if m.msgType == p.config.ContentTopic {
 			p.processContentMsg(m.msg)
 		} else if m.msgType == p.config.MetadataTopic {
