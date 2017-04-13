@@ -266,7 +266,7 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 }
 
 func TestGetAnnotations(t *testing.T) {
-	assert := assert.New(t)
+
 	tests := []struct {
 		uuid           string
 		address        utils.ApiURL
