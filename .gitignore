@@ -2,4 +2,5 @@
 *.exe
 .idea
 .DS_Store
+vendor/*/
 post-publication-combiner

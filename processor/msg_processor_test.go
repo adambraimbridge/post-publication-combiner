@@ -468,12 +468,13 @@ func (p DummyMsgProducer) SendMessage(uuid string, m producer.Message) error {
 	}
 	assert.Equal(p.t, m.Headers["Message-Type"], CombinerMessageType)
 	assert.Equal(p.t, p.expUUID, uuid)
-
-	fmt.Printf("expected msg: %v, received msg: %v", p.expMsg, m)
-
 	assert.True(p.t, reflect.DeepEqual(p.expMsg, m))
 
 	return nil
+}
+
+func (p DummyMsgProducer) ConnectivityCheck() (string, error) {
+	return "", nil
 }
 
 type DummyDataCombiner struct {

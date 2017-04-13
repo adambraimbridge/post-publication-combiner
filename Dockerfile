@@ -19,6 +19,8 @@ RUN apk --no-cache --virtual .build-dependencies add git \
     && LDFLAGS="-X '"${BUILDINFO_PACKAGE}$VERSION"' -X '"${BUILDINFO_PACKAGE}$DATETIME"' -X '"${BUILDINFO_PACKAGE}$REPOSITORY"' -X '"${BUILDINFO_PACKAGE}$REVISION"' -X '"${BUILDINFO_PACKAGE}$BUILDER"'" \
     && go get ./... \
     && echo ${LDFLAGS} \
+    && go get -u github.com/kardianos/govendor \
+    && $GOPATH/bin/govendor sync \
     && go build -ldflags="${LDFLAGS}" \
     && apk del .build-dependencies \
     && rm -rf $GOPATH/src $GOPATH/pkg /usr/local/go
