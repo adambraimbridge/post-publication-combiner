@@ -10,7 +10,7 @@ RUN apk --no-cache --virtual .build-dependencies add git \
     && apk --no-cache --upgrade add ca-certificates \
     && update-ca-certificates --fresh \
     && cd $GOPATH/src/github.com/Financial-Times/post-publication-combiner \
-    && BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo." \
+    && BUILDINFO_PACKAGE="github.com/Financial-Times/post-publication-combiner/vendor/github.com/Financial-Times/service-status-go/buildinfo." \
     && VERSION="version=$(git describe --tag --always 2> /dev/null)" \
     && DATETIME="dateTime=$(date -u +%Y%m%d%H%M%S)" \
     && REPOSITORY="repository=$(git config --get remote.origin.url)" \
