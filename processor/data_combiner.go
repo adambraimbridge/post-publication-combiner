@@ -32,13 +32,13 @@ type dataRetriever struct {
 	client  utils.Client
 }
 
-func (c DataCombiner) GetCombinedModelForContent(content model.ContentModel) (model.CombinedModel, error) {
+func (dc DataCombiner) GetCombinedModelForContent(content model.ContentModel) (model.CombinedModel, error) {
 
 	if content.UUID == "" {
 		return model.CombinedModel{}, errors.New("Content has no UUID provided. Can't deduce annotations for it.")
 	}
 
-	ann, err := c.MetadataRetriever.getAnnotations(content.UUID)
+	ann, err := dc.MetadataRetriever.getAnnotations(content.UUID)
 	if err != nil {
 		return model.CombinedModel{}, err
 	}

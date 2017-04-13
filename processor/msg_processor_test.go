@@ -414,7 +414,7 @@ func TestExtractTIDForEmptyHeader(t *testing.T) {
 	assert.Contains(actualTID, "_post_publication_combiner")
 }
 
-func TestContains(t *testing.T) {
+func TestSupports(t *testing.T) {
 
 	tests := []struct {
 		element   string
@@ -449,7 +449,7 @@ func TestContains(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		result := contains(testCase.array, testCase.element)
+		result := supports(testCase.array, testCase.element)
 		assert.Equal(t, testCase.expResult, result, fmt.Sprintf("Element %v was not found in %v", testCase.array, testCase.element))
 	}
 }
@@ -488,57 +488,3 @@ func (c DummyDataCombiner) GetCombinedModelForContent(content model.ContentModel
 func (c DummyDataCombiner) GetCombinedModelForAnnotations(metadata model.Annotations) (model.CombinedModel, error) {
 	return c.data, c.err
 }
-
-//func TestProcessMessages(t *testing.T) {
-//
-//	tests := []struct {
-//		msgType string
-//		msg consumer.Message
-//	}{
-//		{
-//			msgType:"content",
-//			msg: consumer.Message{
-//				Headers: map[string]string{"X-Request-Id": "some-tid1"},
-//				Body:    `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":""},"v1-metadata":null}`,
-//			},
-//		},
-//		{
-//			msgType:"metadata",
-//			msg: consumer.Message{
-//				Headers: map[string]string{"X-Request-Id": "some-tid1"},
-//				Body:    `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":""},"v1-metadata":null}`,
-//			},
-//		},
-//	}
-//
-//	ch := make (chan *KafkaQMessage,2)
-//	conf := MsgProcessorConfig{ContentTopic:"content", MetadataTopic:"metadata"}
-//	proc := NewMsgProcessor(producer.MessageProducerConfig{}, ch, nil, conf)
-//
-//	fmt.Printf("=1=processor config %v\n", conf)
-//	fmt.Printf("=2=processor config %v\n", proc.config)
-//
-//	go func() {
-//		for _, test := range tests {
-//			ch <- &KafkaQMessage{msgType: test.msgType, msg:test.msg}
-//		}
-//		//close(ch)
-//	} ()
-//
-//	proc.ProcessMessages()
-//
-//	close(ch)
-//}
-
-// TODO no idea how to test this :(
-
-//func (p *MsgProcessor) ProcessMessages() {
-//	for {
-//		m := <- p.src
-//		if m.msgType == p.config.ContentTopic {
-//			p.processContentMsg(m.msg)
-//		} else if m.msgType == p.config.MetadataTopic {
-//			p.processMetadataMsg(m.msg)
-//		}
-//	}
-//}

@@ -6,8 +6,7 @@ import (
 	"testing"
 )
 
-type DummyConsumer struct {
-}
+type DummyConsumer struct{}
 
 func (DummyConsumer) Start() {
 }
@@ -30,13 +29,16 @@ func TestQConsumerProcessMsg(t *testing.T) {
 		msgType:  mType,
 	}
 
-	msgs := []consumer.Message{consumer.Message{
-		Headers: map[string]string{"X-Request-Id": "some-tid1"},
-		Body:    `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":""},"v1-metadata":null}`,
-	}, consumer.Message{
-		Headers: map[string]string{"X-Request-Id": "some-tid2"},
-		Body:    `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":""},"v1-metadata":null}`,
-	}}
+	msgs := []consumer.Message{
+		consumer.Message{
+			Headers: map[string]string{"X-Request-Id": "some-tid1"},
+			Body:    `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":""},"v1-metadata":null}`,
+		},
+		consumer.Message{
+			Headers: map[string]string{"X-Request-Id": "some-tid2"},
+			Body:    `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":""},"v1-metadata":null}`,
+		},
+	}
 
 	for _, m := range msgs {
 		kqc.ProcessMsg(m)

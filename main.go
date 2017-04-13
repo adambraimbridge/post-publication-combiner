@@ -141,34 +141,32 @@ func main() {
 
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 
-		//create channel that will hold the consumed messaged
-		// create 1 channel - let's say a single element channel - MSG
-		ch := make(chan *processor.KafkaQMessage, 100)
+		// create channel for holding the post publication content and metadata messages
+		messagesCh := make(chan *processor.KafkaQMessage, 100)
 
-		// create 2 consumers, which put messages into the channel above
+		// consumer messages from content queue
 		cConf := consumer.QueueConfig{
 			Addrs: []string{*kafkaProxyAddress},
 			Group: *kafkaContentConsumerGroup,
 			Topic: *contentTopic,
 			Queue: *kafkaProxyRoutingHeader,
 		}
-
-		cc := processor.NewKafkaQConsumer(cConf, ch, &client)
+		cc := processor.NewKafkaQConsumer(cConf, messagesCh, &client)
 		go cc.Consumer.Start()
 		defer cc.Consumer.Stop()
 
+		// consumer messages from metadata queue
 		mConf := consumer.QueueConfig{
 			Addrs: []string{*kafkaProxyAddress},
 			Group: *kafkaMetadataConsumerGroup,
 			Topic: *metadataTopic,
 			Queue: *kafkaProxyRoutingHeader,
 		}
-		mc := processor.NewKafkaQConsumer(mConf, ch, &client)
+		mc := processor.NewKafkaQConsumer(mConf, messagesCh, &client)
 		go mc.Consumer.Start()
 		defer mc.Consumer.Stop()
 
-		// create 1 processor - get it's elements from the channel
-		// create 1 producer - the processor forwards the messages to the consumer
+		// process and forward messages
 		pQConf := processor.NewProducerConfig(*kafkaProxyAddress, *combinedTopic, *kafkaProxyRoutingHeader)
 		processorConf := processor.NewMsgProcessorConfig(
 			*whitelistedContentUris,
@@ -176,16 +174,16 @@ func main() {
 			*contentTopic,
 			*metadataTopic,
 		)
-
 		msgProcessor := processor.NewMsgProcessor(
 			pQConf,
-			ch,
+			messagesCh,
 			utils.ApiURL{*docStoreApiBaseURL, *docStoreApiEndpoint},
 			utils.ApiURL{*publicAnnotationsApiBaseURL, *publicAnnotationsApiEndpoint},
 			&client,
 			processorConf)
 		go msgProcessor.ProcessMessages()
 
+		// route admin requests
 		routeRequests(port, NewCombinerHealthcheck(*kafkaProxyAddress, *kafkaProxyRoutingHeader, &client, *contentTopic, *metadataTopic, *combinedTopic, *docStoreApiBaseURL, *publicAnnotationsApiBaseURL))
 	}
 

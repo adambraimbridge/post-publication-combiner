@@ -13,11 +13,7 @@ import (
 	"strings"
 )
 
-const (
-	CombinerMessageType = "cms-combined-content-published"
-)
-
-// MsgProcessor is a structure meant to process and forward messages to a kafka queue
+const CombinerMessageType = "cms-combined-content-published"
 
 type Processor interface {
 	ProcessMessages()
@@ -93,7 +89,7 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 	}
 
 	// wordpress, brightcove, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
-	if contains(p.config.SupportedContentURIs, cm.ContentURI) {
+	if supports(p.config.SupportedContentURIs, cm.ContentURI) {
 
 		//handle delete events
 		if reflect.DeepEqual(cm.ContentModel, model.ContentModel{}) {
@@ -134,7 +130,8 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 	h := m.Headers["Origin-System-Id"]
 
 	//decide based on the origin system header - whether you want to process the message or not
-	if contains(p.config.SupportedHeaders, h) {
+	if supports(p.config.SupportedHeaders, h) {
+
 		//parse message - collect data, then forward it to the next queue
 		var ann model.Annotations
 		b := []byte(m.Body)
@@ -186,13 +183,11 @@ func extractTID(headers map[string]string) string {
 	return tid
 }
 
-func contains(array []string, element string) bool {
-
+func supports(array []string, element string) bool {
 	for _, e := range array {
 		if strings.Contains(element, e) {
 			return true
 		}
 	}
-
 	return false
 }

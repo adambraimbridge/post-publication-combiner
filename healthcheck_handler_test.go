@@ -127,33 +127,6 @@ func TestCheckIfTopicIsPresent_HTTP_Call_Errors(t *testing.T) {
 	}
 }
 
-//func checkIfTopicIsPresent(h *healthcheckHandler, searchedTopic string) error {
-//
-//	urlStr := h.proxyAddress + "/__kafka-rest-proxy/topics"
-//
-//	body, _, err := utils.ExecuteSimpleHTTPRequest(urlStr, h.httpClient)
-//	if err != nil {
-//		logrus.Errorf("Healthcheck: %v", err.Error())
-//		return err
-//	}
-//
-//	var topics []string
-//
-//	err = json.Unmarshal(body, &topics)
-//	if err != nil {
-//		logrus.Errorf("Connection could be established to kafka-proxy, but a parsing error occurred and topic could not be found. %v", err.Error())
-//		return err
-//	}
-//
-//	for _, topic := range topics {
-//		if topic == searchedTopic {
-//			return nil
-//		}
-//	}
-//
-//	return errors.New(fmt.Sprintf("Connection could be established to kafka-proxy, but topic %s was not found", searchedTopic))
-//}
-
 type dummyClient struct {
 	statusCode int
 	body       string

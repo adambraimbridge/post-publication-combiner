@@ -38,9 +38,9 @@ The available parameters are:
 * metadataTopic
 * combinedTopic
 * kafkaProxyAddress
-* kafkaConsumerGroup
+* kafkaContentTopicConsumerGroup
+* kafkaMetadataTopicConsumerGroup
 * kafkaProxyHeader
-* concurrent-queue-processing
 * graphiteTCPAddress
 * graphitePrefix
 * logMetrics
@@ -48,16 +48,17 @@ The available parameters are:
 * docStoreApiEndpoint - the endpoint for content retrieval (/content/{uuid})
 * publicAnnotationsApiBaseURL - public-annotations-api base url (http://localhost:8080/__public-annotations-api)
 * publicAnnotationsApiEndpoint - the endpoint for v1 metadata retrieval (/content/{uuid}/annotations/v1)
+* whitelistedMetadataOriginSystemHeaders - Origin-System-Ids that are supported to be processed from the PostPublicationEvents queue
+* whitelistedContentURIs - Space separated list with content URI substrings - to identify accepted content types
 
 Please check --help for more details.
 
 Test:
-    For testing this service, please check the generated kafka messages.
+    You can verify the service's behavior by checking the consumed and the generated kafka messages.
 
 ## Build and deployment
-How can I build and deploy it (lots of this will be links out as the steps will be common)
 
-* Built by Docker Hub on merge to master: [coco/post-publication-combiner](https://hub.docker.com/r/coco/post-publication-combiner/)
+* Built by Docker Hub (from master or from github tags): [coco/post-publication-combiner](https://hub.docker.com/r/coco/post-publication-combiner/)
 * CI provided by CircleCI: [post-publication-combiner](https://circleci.com/gh/Financial-Times/post-publication-combiner)
 
 ## Service/Utility endpoints
@@ -82,6 +83,4 @@ Checks if:
 ### Logging
 
 * The application uses [logrus](https://github.com/Sirupsen/logrus); the log file is initialised in [main.go](main.go).
-* Logging requires an `env` app parameter, for all environments other than `local` logs are written to file.
-* When running locally, logs are written to console. If you want to log locally to file, you need to pass in an env parameter that is != `local`.
 * NOTE: `/__build-info` and `/__gtg` endpoints are not logged as they are called every second from varnish/vulcand and this information is not needed in logs/splunk.
