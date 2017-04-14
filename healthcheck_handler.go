@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/post-publication-combiner/utils"
+	"github.com/Financial-Times/service-status-go/gtg"
 	"github.com/Sirupsen/logrus"
 	"net/http"
 )
@@ -92,6 +93,26 @@ func checkPublicAnnotationsApiHealthcheck(h *healthcheckHandler) v1a.Check {
 		TechnicalSummary: "Public-annotations-api is not reachable. Messages can't be successfully constructed, neither forwarded.",
 		Checker:          h.checkIfPublicAnnotationsApiIsReachable,
 	}
+}
+
+func (h *healthcheckHandler) gtgCheck() gtg.Status {
+	if _, err := h.checkIfPostContentPublicationTopicIsPresent(); err != nil {
+		return gtg.Status{GoodToGo: false, Message: err.Error()}
+	}
+	if _, err := h.checkIfPostMetadataPublicationTopicIsPresent(); err != nil {
+		return gtg.Status{GoodToGo: false, Message: err.Error()}
+	}
+	if _, err := h.checkIfCombinedPublicationTopicIsPresent(); err != nil {
+		return gtg.Status{GoodToGo: false, Message: err.Error()}
+	}
+	if _, err := h.checkIfDocumentStoreIsReachable(); err != nil {
+		return gtg.Status{GoodToGo: false, Message: err.Error()}
+	}
+	if _, err := h.checkIfPublicAnnotationsApiIsReachable(); err != nil {
+		return gtg.Status{GoodToGo: false, Message: err.Error()}
+	}
+
+	return gtg.Status{GoodToGo: true}
 }
 
 func (h *healthcheckHandler) goodToGo(writer http.ResponseWriter, req *http.Request) {

@@ -202,6 +202,7 @@ func routeRequests(port *string, healthService *healthcheckHandler) {
 
 	r.Path(httphandlers.BuildInfoPath).HandlerFunc(httphandlers.BuildInfoHandler)
 	r.Path(httphandlers.PingPath).HandlerFunc(httphandlers.PingHandler)
+	r.Path(httphandlers.GTGPath).HandlerFunc(httphandlers.NewGoodToGoHandler(healthService.gtgCheck))
 	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(v1a.Handler("Post-Publication-Combiner Healthcheck",
 		"Checks for service dependencies: document-store, public-annotations-api, kafka proxy and the presence of related topics",
 		checkPostMetadataPublicationFoundHealthcheck(healthService),
@@ -210,7 +211,6 @@ func routeRequests(port *string, healthService *healthcheckHandler) {
 		checkDocumentStoreApiHealthcheck(healthService),
 		checkPublicAnnotationsApiHealthcheck(healthService),
 	))})
-	r.Path("/__gtg").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(healthService.goodToGo)})
 
 	if err := http.ListenAndServe(":"+*port, r); err != nil {
 		logrus.Fatalf("Unable to start: %v", err)
