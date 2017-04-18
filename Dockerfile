@@ -2,7 +2,7 @@ FROM golang:1.8-alpine
 
 COPY . /source/
 
-RUN apk add --update bash git go libc-dev ca-certificates \
+RUN apk add --update bash git libc-dev ca-certificates \
   && cd /source/ \
   && BUILDINFO_PACKAGE="github.com/Financial-Times/post-publication-combiner/vendor/github.com/Financial-Times/service-status-go/buildinfo." \
   && VERSION="version=$(git describe --tag --always 2> /dev/null)" \
