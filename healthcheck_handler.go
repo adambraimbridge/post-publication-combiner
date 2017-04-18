@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Financial-Times/go-fthealth/v1a"
+	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/Financial-Times/service-status-go/gtg"
 	"github.com/Sirupsen/logrus"
@@ -40,8 +40,8 @@ func NewCombinerHealthcheck(proxyAddress string, proxyHeader string, client util
 	}
 }
 
-func checkPostMetadataPublicationFoundHealthcheck(h *healthcheckHandler) v1a.Check {
-	return v1a.Check{
+func checkPostMetadataPublicationFoundHealthcheck(h *healthcheckHandler) health.Check {
+	return health.Check{
 		BusinessImpact:   "Metadata messages don't get processed. Content might not get indexed for search.",
 		Name:             fmt.Sprintf("Check kafka-proxy connectivity and %s topic", h.metadataTopic),
 		PanicGuide:       "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/post-publication-combiner",
@@ -51,8 +51,8 @@ func checkPostMetadataPublicationFoundHealthcheck(h *healthcheckHandler) v1a.Che
 	}
 }
 
-func checkPostContentPublicationTopicIsFoundHealthcheck(h *healthcheckHandler) v1a.Check {
-	return v1a.Check{
+func checkPostContentPublicationTopicIsFoundHealthcheck(h *healthcheckHandler) health.Check {
+	return health.Check{
 		BusinessImpact:   "Content messages don't get processed. Content might not get indexed for search.",
 		Name:             fmt.Sprintf("Check kafka-proxy connectivity and %s topic", h.contentTopic),
 		PanicGuide:       "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/post-publication-combiner",
@@ -62,8 +62,8 @@ func checkPostContentPublicationTopicIsFoundHealthcheck(h *healthcheckHandler) v
 	}
 }
 
-func checkCombinedPublicationTopicTopicIsFoundHealthcheck(h *healthcheckHandler) v1a.Check {
-	return v1a.Check{
+func checkCombinedPublicationTopicTopicIsFoundHealthcheck(h *healthcheckHandler) health.Check {
+	return health.Check{
 		BusinessImpact:   "CombinedPostPublication messages can't be written in the queue. Indexing for search won't work.",
 		Name:             fmt.Sprintf("Check kafka-proxy connectivity and %s topic", h.combinedTopic),
 		PanicGuide:       "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/post-publication-combiner",
@@ -73,8 +73,8 @@ func checkCombinedPublicationTopicTopicIsFoundHealthcheck(h *healthcheckHandler)
 	}
 }
 
-func checkDocumentStoreApiHealthcheck(h *healthcheckHandler) v1a.Check {
-	return v1a.Check{
+func checkDocumentStoreApiHealthcheck(h *healthcheckHandler) health.Check {
+	return health.Check{
 		BusinessImpact:   "CombinedPostPublication messages can't be constructed. Indexing for content search won't work.",
 		Name:             "Check connectivity to document-store-api",
 		PanicGuide:       "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/post-publication-combiner",
@@ -84,8 +84,8 @@ func checkDocumentStoreApiHealthcheck(h *healthcheckHandler) v1a.Check {
 	}
 }
 
-func checkPublicAnnotationsApiHealthcheck(h *healthcheckHandler) v1a.Check {
-	return v1a.Check{
+func checkPublicAnnotationsApiHealthcheck(h *healthcheckHandler) health.Check {
+	return health.Check{
 		BusinessImpact:   "CombinedPostPublication messages can't be constructed. Indexing for content search won't work.",
 		Name:             "Check connectivity to public-annotations-api",
 		PanicGuide:       "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/post-publication-combiner",

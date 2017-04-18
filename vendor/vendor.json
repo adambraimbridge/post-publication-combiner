@@ -1,6 +1,6 @@
 {
 	"comment": "",
-	"ignore": "test appengine",
+	"ignore": "test",
 	"package": [
 		{
 			"checksumSHA1": "fg1dZ/MIpnMKoW0vJE2y5HpHXXc=",
@@ -9,10 +9,10 @@
 			"revisionTime": "2016-09-09T09:52:18Z"
 		},
 		{
-			"checksumSHA1": "FUhczVSvt/VQAlWfzATo1YLez2E=",
-			"path": "github.com/Financial-Times/go-fthealth/v1a",
-			"revision": "f9074331b3ab48bca0e6d0afc211a673d88ac925",
-			"revisionTime": "2016-06-16T09:04:59Z"
+			"checksumSHA1": "2dtgENfeO6SICvxjruwb9f1CzLY=",
+			"path": "github.com/Financial-Times/go-fthealth/v1_1",
+			"revision": "bc27ed19189994eef0364e4a07879d5a3f3be76f",
+			"revisionTime": "2017-03-24T12:21:32Z"
 		},
 		{
 			"checksumSHA1": "zUpINnstJChGK0LAtkt7jBc3RY0=",
@@ -94,13 +94,13 @@
 			"revisionTime": "2017-01-30T11:31:45Z"
 		},
 		{
-			"checksumSHA1": "Cv1SPq5uwD7mx76IWwra244PF+g=",
+			"checksumSHA1": "pXA0VXOMBMY18/4WFJjqnsT51jo=",
 			"path": "github.com/dchest/uniuri",
 			"revision": "8902c56451e9b58ff940bbe5fec35d5f9c04584a",
 			"revisionTime": "2016-02-12T16:43:26Z"
 		},
 		{
-			"checksumSHA1": "/iJhCMlisLlUukGfIu7zBNuyLmg=",
+			"checksumSHA1": "ckm0ZkKKCfO/GvdBUZZX6rj+t6o=",
 			"path": "github.com/golang/go/src/pkg/fmt",
 			"revision": "6174b5e21e73714c63061e66efdbe180e1c5491d",
 			"revisionTime": "2012-03-28T12:41:59Z"

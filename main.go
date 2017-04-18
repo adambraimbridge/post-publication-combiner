@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
-	"github.com/Financial-Times/go-fthealth/v1a"
+	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/post-publication-combiner/processor"
 	"github.com/Financial-Times/post-publication-combiner/utils"
@@ -203,14 +203,23 @@ func routeRequests(port *string, healthService *healthcheckHandler) {
 	r.Path(httphandlers.BuildInfoPath).HandlerFunc(httphandlers.BuildInfoHandler)
 	r.Path(httphandlers.PingPath).HandlerFunc(httphandlers.PingHandler)
 	r.Path(httphandlers.GTGPath).HandlerFunc(httphandlers.NewGoodToGoHandler(healthService.gtgCheck))
-	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(v1a.Handler("Post-Publication-Combiner Healthcheck",
-		"Checks for service dependencies: document-store, public-annotations-api, kafka proxy and the presence of related topics",
+
+	checks := []health.Check{
 		checkPostMetadataPublicationFoundHealthcheck(healthService),
 		checkPostContentPublicationTopicIsFoundHealthcheck(healthService),
 		checkCombinedPublicationTopicTopicIsFoundHealthcheck(healthService),
 		checkDocumentStoreApiHealthcheck(healthService),
 		checkPublicAnnotationsApiHealthcheck(healthService),
-	))})
+	}
+
+	hc := health.HealthCheck{
+		SystemCode: "upp-post-publication-combiner",
+		Name: "post-publication-combiner",
+		Description: "Checks for service dependencies: document-store, public-annotations-api, kafka proxy and the presence of related topics",
+		Checks: checks,
+	}
+
+	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(health.Handler(hc))})
 
 	if err := http.ListenAndServe(":"+*port, r); err != nil {
 		logrus.Fatalf("Unable to start: %v", err)
