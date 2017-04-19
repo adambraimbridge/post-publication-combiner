@@ -89,38 +89,38 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 	}
 
 	// wordpress, brightcove, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
-	if supports(p.config.SupportedContentURIs, cm.ContentURI) {
-
-		//handle delete events
-		if reflect.DeepEqual(cm.ContentModel, model.ContentModel{}) {
-			sl := strings.Split(cm.ContentURI, "/")
-			cm.ContentModel.UUID = sl[len(sl)-1]
-			cm.ContentModel.MarkedDeleted = true
-		}
-
-		if cm.ContentModel.UUID == "" {
-			logrus.Errorf("UUID not found after message marshalling, skipping message with TID=%v.", tid)
-			return
-		}
-
-		//combine data
-		combinedMSG, err := p.DataCombiner.GetCombinedModelForContent(cm.ContentModel)
-		if err != nil {
-			logrus.Errorf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped. %v", tid, err)
-			return
-		}
-
-		//forward data
-		err = p.forwardMsg(m.Headers, &combinedMSG)
-		if err != nil {
-			logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
-			return
-		}
-		logrus.Infof("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)
+	if !includes(p.config.SupportedContentURIs, cm.ContentURI) {
+		logrus.Infof("%v - Skipped unsupported content with contentUri: %v. ", tid, cm.ContentURI)
 		return
 	}
 
-	logrus.Infof("%v - Skipped unsupported content with contentUri: %v. ", tid, cm.ContentURI)
+	//handle delete events
+	if reflect.DeepEqual(cm.ContentModel, model.ContentModel{}) {
+		sl := strings.Split(cm.ContentURI, "/")
+		cm.ContentModel.UUID = sl[len(sl)-1]
+		cm.ContentModel.MarkedDeleted = true
+	}
+
+	if cm.ContentModel.UUID == "" {
+		logrus.Errorf("UUID not found after message marshalling, skipping message with TID=%v.", tid)
+		return
+	}
+
+	//combine data
+	combinedMSG, err := p.DataCombiner.GetCombinedModelForContent(cm.ContentModel)
+	if err != nil {
+		logrus.Errorf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped. %v", tid, err)
+		return
+	}
+
+	//forward data
+	err = p.forwardMsg(m.Headers, &combinedMSG)
+	if err != nil {
+		logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
+		return
+	}
+	logrus.Infof("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)
+
 }
 
 func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
@@ -130,34 +130,34 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 	h := m.Headers["Origin-System-Id"]
 
 	//decide based on the origin system header - whether you want to process the message or not
-	if supports(p.config.SupportedHeaders, h) {
-
-		//parse message - collect data, then forward it to the next queue
-		var ann model.Annotations
-		b := []byte(m.Body)
-		if err := json.Unmarshal(b, &ann); err != nil {
-			logrus.Errorf("Could not unmarshall message with TID=%v, error=%v", tid, err.Error())
-			return
-		}
-
-		//combine data
-		combinedMSG, err := p.DataCombiner.GetCombinedModelForAnnotations(ann)
-		if err != nil {
-			logrus.Errorf("%v - Error obtaining the combined message. Content couldn't get read. Message will be skipped. %v", tid, err)
-			return
-		}
-
-		//forward data
-		err = p.forwardMsg(m.Headers, &combinedMSG)
-		if err != nil {
-			logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
-			return
-		}
-		logrus.Infof("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)
+	if !includes(p.config.SupportedHeaders, h) {
+		logrus.Infof("%v - Skipped unsupported annotations with Origin-System-Id: %v. ", tid, h)
 		return
 	}
 
-	logrus.Infof("%v - Skipped unsupported annotations with Origin-System-Id: %v. ", tid, h)
+	//parse message - collect data, then forward it to the next queue
+	var ann model.Annotations
+	b := []byte(m.Body)
+	if err := json.Unmarshal(b, &ann); err != nil {
+		logrus.Errorf("Could not unmarshall message with TID=%v, error=%v", tid, err.Error())
+		return
+	}
+
+	//combine data
+	combinedMSG, err := p.DataCombiner.GetCombinedModelForAnnotations(ann)
+	if err != nil {
+		logrus.Errorf("%v - Error obtaining the combined message. Content couldn't get read. Message will be skipped. %v", tid, err)
+		return
+	}
+
+	//forward data
+	err = p.forwardMsg(m.Headers, &combinedMSG)
+	if err != nil {
+		logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
+		return
+	}
+	logrus.Infof("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)
+
 }
 
 func (p *MsgProcessor) forwardMsg(headers map[string]string, model *model.CombinedModel) error {
@@ -183,7 +183,7 @@ func extractTID(headers map[string]string) string {
 	return tid
 }
 
-func supports(array []string, element string) bool {
+func includes(array []string, element string) bool {
 	for _, e := range array {
 		if strings.Contains(element, e) {
 			return true

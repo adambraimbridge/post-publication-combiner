@@ -101,7 +101,7 @@ func TestCheckIfTopicIsPresent_HTTP_Call_Errors(t *testing.T) {
 				body:       `["topic1","topic2"]`,
 			},
 			"some-topic",
-			errors.New(fmt.Sprintf("Connection could be established to kafka-proxy, but topic %s was not found", "some-topic")),
+			fmt.Errorf("Connection could be established to kafka-proxy, but topic %s was not found", "some-topic"),
 		},
 		{
 			dummyClient{

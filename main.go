@@ -42,7 +42,6 @@ func main() {
 		Value:  "CombinedPostPublicationEvents",
 		EnvVar: "KAFKA_COMBINED_TOPIC_NAME",
 	})
-
 	kafkaProxyAddress := app.String(cli.StringOpt{
 		Name:   "kafkaProxyAddress",
 		Value:  "http://localhost:8080",
@@ -87,25 +86,25 @@ func main() {
 		EnvVar: "LOG_METRICS",
 	})
 
-	docStoreApiBaseURL := app.String(cli.StringOpt{
+	docStoreAPIBaseURL := app.String(cli.StringOpt{
 		Name:   "docStoreApiBaseURL",
 		Value:  "http://localhost:8080/__document-store-api",
 		Desc:   "The address that the document store can be reached at. Important for content retrieval.",
 		EnvVar: "DOCUMENT_STORE_BASE_URL",
 	})
-	docStoreApiEndpoint := app.String(cli.StringOpt{
+	docStoreAPIEndpoint := app.String(cli.StringOpt{
 		Name:   "docStoreApiEndpoint",
 		Value:  "/content/{uuid}",
 		Desc:   "The endpoint used for content retrieval.",
 		EnvVar: "DOCUMENT_STORE_API_ENDPOINT",
 	})
-	publicAnnotationsApiBaseURL := app.String(cli.StringOpt{
+	publicAnnotationsAPIBaseURL := app.String(cli.StringOpt{
 		Name:   "publicAnnotationsApiBaseURL",
 		Value:  "http://localhost:8080/__public-annotations-api",
 		Desc:   "The address that the public-annotations-api can be reached at. Important for metadata retrieval.",
 		EnvVar: "PUBLIC_ANNOTATIONS_API_BASE_URL",
 	})
-	publicAnnotationsApiEndpoint := app.String(cli.StringOpt{
+	publicAnnotationsAPIEndpoint := app.String(cli.StringOpt{
 		Name:   "publicAnnotationsApiEndpoint",
 		Value:  "/content/{uuid}/annotations/v1",
 		Desc:   "The endpoint used for metadata retrieval.",
@@ -177,14 +176,14 @@ func main() {
 		msgProcessor := processor.NewMsgProcessor(
 			pQConf,
 			messagesCh,
-			utils.ApiURL{*docStoreApiBaseURL, *docStoreApiEndpoint},
-			utils.ApiURL{*publicAnnotationsApiBaseURL, *publicAnnotationsApiEndpoint},
+			utils.ApiURL{*docStoreAPIBaseURL, *docStoreAPIEndpoint},
+			utils.ApiURL{*publicAnnotationsAPIBaseURL, *publicAnnotationsAPIEndpoint},
 			&client,
 			processorConf)
 		go msgProcessor.ProcessMessages()
 
 		// route admin requests
-		routeRequests(port, NewCombinerHealthcheck(*kafkaProxyAddress, *kafkaProxyRoutingHeader, &client, *contentTopic, *metadataTopic, *combinedTopic, *docStoreApiBaseURL, *publicAnnotationsApiBaseURL))
+		routeRequests(port, NewCombinerHealthcheck(*kafkaProxyAddress, *kafkaProxyRoutingHeader, &client, *contentTopic, *metadataTopic, *combinedTopic, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
 	}
 
 	logrus.SetLevel(logrus.InfoLevel)
@@ -213,10 +212,10 @@ func routeRequests(port *string, healthService *healthcheckHandler) {
 	}
 
 	hc := health.HealthCheck{
-		SystemCode: "upp-post-publication-combiner",
-		Name: "post-publication-combiner",
+		SystemCode:  "upp-post-publication-combiner",
+		Name:        "post-publication-combiner",
 		Description: "Checks for service dependencies: document-store, public-annotations-api, kafka proxy and the presence of related topics",
-		Checks: checks,
+		Checks:      checks,
 	}
 
 	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(health.Handler(hc))})

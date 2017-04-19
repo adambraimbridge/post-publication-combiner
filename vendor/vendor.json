@@ -69,7 +69,7 @@
 			"revisionTime": "2016-08-24T12:50:00Z"
 		},
 		{
-			"checksumSHA1": "+0iwMn8nEuFOeEFtfeTLwEECx1w=",
+			"checksumSHA1": "cT6+XPBZiXsFbb7cXT6AYNrZyuM=",
 			"path": "github.com/Sirupsen/logrus",
 			"revision": "3f603f494d61c73457fb234161d8982b9f0f0b71",
 			"revisionTime": "2017-02-07T18:34:08Z"
@@ -87,7 +87,7 @@
 			"revisionTime": "2016-12-19T23:08:53Z"
 		},
 		{
-			"checksumSHA1": "wyfoHgIewGlLGR6xMMuZ9hKr1OQ=",
+			"checksumSHA1": "OFu4xJEIjiI8Suu+j/gabfp+y6Q=",
 			"origin": "github.com/stretchr/testify/vendor/github.com/davecgh/go-spew/spew",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
@@ -136,7 +136,7 @@
 			"revisionTime": "2016-11-23T22:54:47Z"
 		},
 		{
-			"checksumSHA1": "Q55QLpWtk7iVRvJIsoLC07hfOoU=",
+			"checksumSHA1": "IktajYBdDSURw7XahHBtH6PbZYQ=",
 			"path": "github.com/jmcvetta/neoism",
 			"revision": "9d29cb10be18b1256c9290b9fc9b64c34278b8b7",
 			"revisionTime": "2016-07-01T08:22:53Z"
@@ -167,7 +167,7 @@
 			"revisionTime": "2017-01-30T11:31:45Z"
 		},
 		{
-			"checksumSHA1": "UfwH6L6mvyFHSX7vXhAZEwgus+A=",
+			"checksumSHA1": "KAzbLjI9MzW2tjfcAsK75lVRp6I=",
 			"path": "github.com/rcrowley/go-metrics",
 			"revision": "1f30fe9094a513ce4c700b9a54458bbb0c96996c",
 			"revisionTime": "2016-11-28T21:05:44Z"

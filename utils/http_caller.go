@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	"io"
@@ -38,23 +37,23 @@ func executeHTTPRequest(urlStr string, httpClient Client) (b []byte, status int,
 
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
-		return nil, -1, errors.New(fmt.Sprintf("Error creating requests for url=%s, error=%v", urlStr, err))
+		return nil, -1, fmt.Errorf("Error creating requests for url=%s, error=%v", urlStr, err)
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, resp.StatusCode, errors.New(fmt.Sprintf("Error executing requests for url=%s, error=%v", urlStr, err))
+		return nil, resp.StatusCode, fmt.Errorf("Error executing requests for url=%s, error=%v", urlStr, err)
 	}
 
 	defer cleanUp(resp)
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, resp.StatusCode, errors.New(fmt.Sprintf("Connecting to %s was not successful. Status: %d", urlStr, resp.StatusCode))
+		return nil, resp.StatusCode, fmt.Errorf("Connecting to %s was not successful. Status: %d", urlStr, resp.StatusCode)
 	}
 
 	b, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, http.StatusOK, errors.New(fmt.Sprintf("Could not parse payload from response for url=%s, error=%v", urlStr, err))
+		return nil, http.StatusOK, fmt.Errorf("Could not parse payload from response for url=%s, error=%v", urlStr, err)
 	}
 
 	return b, http.StatusOK, err

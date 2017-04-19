@@ -348,7 +348,7 @@ func TestForwardMsg(t *testing.T) {
 			},
 			uuid: "uuid-returning-error",
 			body: `{"uuid":"uuid-returning-error","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":""},"v1-metadata":null}`,
-			err:  errors.New(fmt.Sprint("Some error")),
+			err:  fmt.Errorf("Some error"),
 		},
 	}
 
@@ -449,7 +449,7 @@ func TestSupports(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		result := supports(testCase.array, testCase.element)
+		result := includes(testCase.array, testCase.element)
 		assert.Equal(t, testCase.expResult, result, fmt.Sprintf("Element %v was not found in %v", testCase.array, testCase.element))
 	}
 }

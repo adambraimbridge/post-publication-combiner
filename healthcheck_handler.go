@@ -2,13 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/Financial-Times/service-status-go/gtg"
 	"github.com/Sirupsen/logrus"
-	"net/http"
 )
 
 const (
@@ -115,24 +113,6 @@ func (h *healthcheckHandler) gtgCheck() gtg.Status {
 	return gtg.Status{GoodToGo: true}
 }
 
-func (h *healthcheckHandler) goodToGo(writer http.ResponseWriter, req *http.Request) {
-	if _, err := h.checkIfPostContentPublicationTopicIsPresent(); err != nil {
-		writer.WriteHeader(http.StatusServiceUnavailable)
-	}
-	if _, err := h.checkIfPostMetadataPublicationTopicIsPresent(); err != nil {
-		writer.WriteHeader(http.StatusServiceUnavailable)
-	}
-	if _, err := h.checkIfCombinedPublicationTopicIsPresent(); err != nil {
-		writer.WriteHeader(http.StatusServiceUnavailable)
-	}
-	if _, err := h.checkIfDocumentStoreIsReachable(); err != nil {
-		writer.WriteHeader(http.StatusServiceUnavailable)
-	}
-	if _, err := h.checkIfPublicAnnotationsApiIsReachable(); err != nil {
-		writer.WriteHeader(http.StatusServiceUnavailable)
-	}
-}
-
 func (h *healthcheckHandler) checkIfPostMetadataPublicationTopicIsPresent() (string, error) {
 	return ResponseOK, checkIfTopicIsPresent(h, h.metadataTopic)
 }
@@ -185,5 +165,5 @@ func checkIfTopicIsPresent(h *healthcheckHandler, searchedTopic string) error {
 		}
 	}
 
-	return errors.New(fmt.Sprintf("Connection could be established to kafka-proxy, but topic %s was not found", searchedTopic))
+	return fmt.Errorf("Connection could be established to kafka-proxy, but topic %s was not found", searchedTopic)
 }
