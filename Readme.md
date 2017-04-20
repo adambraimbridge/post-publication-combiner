@@ -1,4 +1,4 @@
-# post-publication-combiner
+# upp-post-publication-combiner
 
 [![Circle CI](https://circleci.com/gh/Financial-Times/post-publication-combiner/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/post-publication-combiner/tree/master)[![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/post-publication-combiner)](https://goreportcard.com/report/github.com/Financial-Times/post-publication-combiner) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/post-publication-combiner/badge.svg)](https://coveralls.io/github/Financial-Times/post-publication-combiner)
 
@@ -28,7 +28,6 @@ In order to install, execute the following steps:
 
 1. Run the tests and install the binary:
 
-        go get -t
         go test ./...
         go install
 

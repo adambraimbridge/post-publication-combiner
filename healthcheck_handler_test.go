@@ -17,8 +17,8 @@ func TestCheckIfDocumentStoreIsReachable_Errors(t *testing.T) {
 	dc := dummyClient{
 		err: expError,
 	}
-	h := healthcheckHandler{
-		docStoreApiBaseURL: "doc-store-base-url",
+	h := HealthcheckHandler{
+		docStoreAPIBaseURL: "doc-store-base-url",
 		httpClient:         &dc,
 	}
 
@@ -32,8 +32,8 @@ func TestCheckIfDocumentStoreIsReachable_Succeeds(t *testing.T) {
 		statusCode: http.StatusOK,
 		body:       "all good",
 	}
-	h := healthcheckHandler{
-		docStoreApiBaseURL: "doc-store-base-url",
+	h := HealthcheckHandler{
+		docStoreAPIBaseURL: "doc-store-base-url",
 		httpClient:         &dc,
 	}
 
@@ -48,12 +48,12 @@ func TestCheckIfPublicAnnotationsApiIsReachable_Errors(t *testing.T) {
 	dc := dummyClient{
 		err: expError,
 	}
-	h := healthcheckHandler{
-		publicAnnotationsApiBaseURL: "pub-ann-base-url",
+	h := HealthcheckHandler{
+		publicAnnotationsAPIBaseURL: "pub-ann-base-url",
 		httpClient:                  &dc,
 	}
 
-	resp, err := h.checkIfPublicAnnotationsApiIsReachable()
+	resp, err := h.checkIfPublicAnnotationsAPIIsReachable()
 	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", expError, err))
 	assert.Equal(t, ResponseOK, resp)
 }
@@ -63,12 +63,12 @@ func TestCheckIfPublicAnnotationsApiIsReachable_Succeeds(t *testing.T) {
 		statusCode: http.StatusOK,
 		body:       "all good",
 	}
-	h := healthcheckHandler{
-		publicAnnotationsApiBaseURL: "pub-ann-base-url",
+	h := HealthcheckHandler{
+		publicAnnotationsAPIBaseURL: "pub-ann-base-url",
 		httpClient:                  &dc,
 	}
 
-	resp, err := h.checkIfPublicAnnotationsApiIsReachable()
+	resp, err := h.checkIfPublicAnnotationsAPIIsReachable()
 	assert.Nil(t, err)
 	assert.Equal(t, ResponseOK, resp)
 }
@@ -114,7 +114,7 @@ func TestCheckIfTopicIsPresent_HTTP_Call_Errors(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		h := healthcheckHandler{
+		h := HealthcheckHandler{
 			proxyAddress: "proxy-address",
 			httpClient:   testCase.client,
 		}

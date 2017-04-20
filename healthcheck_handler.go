@@ -14,31 +14,31 @@ const (
 	ResponseOK  = "OK"
 )
 
-type healthcheckHandler struct {
+type HealthcheckHandler struct {
 	httpClient                  utils.Client
 	proxyAddress                string
 	proxyRequestHeader          string
 	metadataTopic               string
 	contentTopic                string
 	combinedTopic               string
-	docStoreApiBaseURL          string
-	publicAnnotationsApiBaseURL string
+	docStoreAPIBaseURL          string
+	publicAnnotationsAPIBaseURL string
 }
 
-func NewCombinerHealthcheck(proxyAddress string, proxyHeader string, client utils.Client, metadataTopic string, contentTopic string, combinedTopic string, docStoreApiURL string, publicAnnotationsAPIURL string) *healthcheckHandler {
-	return &healthcheckHandler{
+func NewCombinerHealthcheck(proxyAddress string, proxyHeader string, client utils.Client, metadataTopic string, contentTopic string, combinedTopic string, docStoreAPIURL string, publicAnnotationsAPIURL string) *HealthcheckHandler {
+	return &HealthcheckHandler{
 		httpClient:                  client,
 		proxyAddress:                proxyAddress,
 		proxyRequestHeader:          proxyHeader,
 		metadataTopic:               metadataTopic,
 		contentTopic:                contentTopic,
 		combinedTopic:               combinedTopic,
-		docStoreApiBaseURL:          docStoreApiURL,
-		publicAnnotationsApiBaseURL: publicAnnotationsAPIURL,
+		docStoreAPIBaseURL:          docStoreAPIURL,
+		publicAnnotationsAPIBaseURL: publicAnnotationsAPIURL,
 	}
 }
 
-func checkPostMetadataPublicationFoundHealthcheck(h *healthcheckHandler) health.Check {
+func checkPostMetadataPublicationFoundHealthcheck(h *HealthcheckHandler) health.Check {
 	return health.Check{
 		BusinessImpact:   "Metadata messages don't get processed. Content might not get indexed for search.",
 		Name:             fmt.Sprintf("Check kafka-proxy connectivity and %s topic", h.metadataTopic),
@@ -49,7 +49,7 @@ func checkPostMetadataPublicationFoundHealthcheck(h *healthcheckHandler) health.
 	}
 }
 
-func checkPostContentPublicationTopicIsFoundHealthcheck(h *healthcheckHandler) health.Check {
+func checkPostContentPublicationTopicIsFoundHealthcheck(h *HealthcheckHandler) health.Check {
 	return health.Check{
 		BusinessImpact:   "Content messages don't get processed. Content might not get indexed for search.",
 		Name:             fmt.Sprintf("Check kafka-proxy connectivity and %s topic", h.contentTopic),
@@ -60,7 +60,7 @@ func checkPostContentPublicationTopicIsFoundHealthcheck(h *healthcheckHandler) h
 	}
 }
 
-func checkCombinedPublicationTopicTopicIsFoundHealthcheck(h *healthcheckHandler) health.Check {
+func checkCombinedPublicationTopicTopicIsFoundHealthcheck(h *HealthcheckHandler) health.Check {
 	return health.Check{
 		BusinessImpact:   "CombinedPostPublication messages can't be written in the queue. Indexing for search won't work.",
 		Name:             fmt.Sprintf("Check kafka-proxy connectivity and %s topic", h.combinedTopic),
@@ -71,7 +71,7 @@ func checkCombinedPublicationTopicTopicIsFoundHealthcheck(h *healthcheckHandler)
 	}
 }
 
-func checkDocumentStoreApiHealthcheck(h *healthcheckHandler) health.Check {
+func checkDocumentStoreAPIHealthcheck(h *HealthcheckHandler) health.Check {
 	return health.Check{
 		BusinessImpact:   "CombinedPostPublication messages can't be constructed. Indexing for content search won't work.",
 		Name:             "Check connectivity to document-store-api",
@@ -82,18 +82,18 @@ func checkDocumentStoreApiHealthcheck(h *healthcheckHandler) health.Check {
 	}
 }
 
-func checkPublicAnnotationsApiHealthcheck(h *healthcheckHandler) health.Check {
+func checkPublicAnnotationsAPIHealthcheck(h *HealthcheckHandler) health.Check {
 	return health.Check{
 		BusinessImpact:   "CombinedPostPublication messages can't be constructed. Indexing for content search won't work.",
 		Name:             "Check connectivity to public-annotations-api",
 		PanicGuide:       "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/post-publication-combiner",
 		Severity:         1,
 		TechnicalSummary: "Public-annotations-api is not reachable. Messages can't be successfully constructed, neither forwarded.",
-		Checker:          h.checkIfPublicAnnotationsApiIsReachable,
+		Checker:          h.checkIfPublicAnnotationsAPIIsReachable,
 	}
 }
 
-func (h *healthcheckHandler) gtgCheck() gtg.Status {
+func (h *HealthcheckHandler) gtgCheck() gtg.Status {
 	if _, err := h.checkIfPostContentPublicationTopicIsPresent(); err != nil {
 		return gtg.Status{GoodToGo: false, Message: err.Error()}
 	}
@@ -106,42 +106,42 @@ func (h *healthcheckHandler) gtgCheck() gtg.Status {
 	if _, err := h.checkIfDocumentStoreIsReachable(); err != nil {
 		return gtg.Status{GoodToGo: false, Message: err.Error()}
 	}
-	if _, err := h.checkIfPublicAnnotationsApiIsReachable(); err != nil {
+	if _, err := h.checkIfPublicAnnotationsAPIIsReachable(); err != nil {
 		return gtg.Status{GoodToGo: false, Message: err.Error()}
 	}
 
 	return gtg.Status{GoodToGo: true}
 }
 
-func (h *healthcheckHandler) checkIfPostMetadataPublicationTopicIsPresent() (string, error) {
+func (h *HealthcheckHandler) checkIfPostMetadataPublicationTopicIsPresent() (string, error) {
 	return ResponseOK, checkIfTopicIsPresent(h, h.metadataTopic)
 }
 
-func (h *healthcheckHandler) checkIfPostContentPublicationTopicIsPresent() (string, error) {
+func (h *HealthcheckHandler) checkIfPostContentPublicationTopicIsPresent() (string, error) {
 	return ResponseOK, checkIfTopicIsPresent(h, h.contentTopic)
 }
 
-func (h *healthcheckHandler) checkIfCombinedPublicationTopicIsPresent() (string, error) {
+func (h *HealthcheckHandler) checkIfCombinedPublicationTopicIsPresent() (string, error) {
 	return ResponseOK, checkIfTopicIsPresent(h, h.combinedTopic)
 }
 
-func (h *healthcheckHandler) checkIfDocumentStoreIsReachable() (string, error) {
-	_, _, err := utils.ExecuteSimpleHTTPRequest(h.docStoreApiBaseURL+GTGEndpoint, h.httpClient)
+func (h *HealthcheckHandler) checkIfDocumentStoreIsReachable() (string, error) {
+	_, _, err := utils.ExecuteSimpleHTTPRequest(h.docStoreAPIBaseURL +GTGEndpoint, h.httpClient)
 	if err != nil {
 		logrus.Errorf("Healthcheck: %v", err.Error())
 	}
 	return ResponseOK, err
 }
 
-func (h *healthcheckHandler) checkIfPublicAnnotationsApiIsReachable() (string, error) {
-	_, _, err := utils.ExecuteSimpleHTTPRequest(h.publicAnnotationsApiBaseURL+GTGEndpoint, h.httpClient)
+func (h *HealthcheckHandler) checkIfPublicAnnotationsAPIIsReachable() (string, error) {
+	_, _, err := utils.ExecuteSimpleHTTPRequest(h.publicAnnotationsAPIBaseURL +GTGEndpoint, h.httpClient)
 	if err != nil {
 		logrus.Errorf("Healthcheck: %v", err.Error())
 	}
 	return ResponseOK, err
 }
 
-func checkIfTopicIsPresent(h *healthcheckHandler, searchedTopic string) error {
+func checkIfTopicIsPresent(h *HealthcheckHandler, searchedTopic string) error {
 
 	urlStr := h.proxyAddress + "/__kafka-rest-proxy/topics"
 

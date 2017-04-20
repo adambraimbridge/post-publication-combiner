@@ -195,7 +195,7 @@ func main() {
 	}
 }
 
-func routeRequests(port *string, healthService *healthcheckHandler) {
+func routeRequests(port *string, healthService *HealthcheckHandler) {
 
 	r := mux.NewRouter()
 
@@ -207,8 +207,8 @@ func routeRequests(port *string, healthService *healthcheckHandler) {
 		checkPostMetadataPublicationFoundHealthcheck(healthService),
 		checkPostContentPublicationTopicIsFoundHealthcheck(healthService),
 		checkCombinedPublicationTopicTopicIsFoundHealthcheck(healthService),
-		checkDocumentStoreApiHealthcheck(healthService),
-		checkPublicAnnotationsApiHealthcheck(healthService),
+		checkDocumentStoreAPIHealthcheck(healthService),
+		checkPublicAnnotationsAPIHealthcheck(healthService),
 	}
 
 	hc := health.HealthCheck{
