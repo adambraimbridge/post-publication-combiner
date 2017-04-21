@@ -454,6 +454,26 @@ func TestSupports(t *testing.T) {
 	}
 }
 
+func TestGetPlatformVersion(t *testing.T) {
+	assert := assert.New(t)
+	tests := []struct {
+		inputStr    string
+		expectedStr string
+	}{
+		{"{some-url}/binding-service", "v1"},
+		{"{some-url}/methode-web-pub", "v1"},
+		{"{some-url}/brightcove", "brightcove"},
+		{"methode-article-mapper", "v1"},
+		{"wordpress-article-mapper", "v1"},
+		{"brightcove-video-model-mapper", "brightcove"},
+	}
+
+	for _, testCase := range tests {
+		pv := getPlatformVersion(testCase.inputStr)
+		assert.Equal(testCase.expectedStr, pv)
+	}
+}
+
 type DummyMsgProducer struct {
 	t        *testing.T
 	expUUID  string
@@ -482,10 +502,10 @@ type DummyDataCombiner struct {
 	err  error
 }
 
-func (c DummyDataCombiner) GetCombinedModelForContent(content model.ContentModel) (model.CombinedModel, error) {
+func (c DummyDataCombiner) GetCombinedModelForContent(content model.ContentModel, platformVersion string) (model.CombinedModel, error) {
 	return c.data, c.err
 }
 
-func (c DummyDataCombiner) GetCombinedModelForAnnotations(metadata model.Annotations) (model.CombinedModel, error) {
+func (c DummyDataCombiner) GetCombinedModelForAnnotations(metadata model.Annotations, platformVersion string) (model.CombinedModel, error) {
 	return c.data, c.err
 }

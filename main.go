@@ -69,13 +69,11 @@ func main() {
 
 	graphiteTCPAddress := app.String(cli.StringOpt{
 		Name:   "graphiteTCPAddress",
-		Value:  "",
 		Desc:   "Graphite TCP address, e.g. graphite.ft.com:2003. Leave as default if you do NOT want to output to graphite (e.g. if running locally",
 		EnvVar: "GRAPHITE_ADDRESS",
 	})
 	graphitePrefix := app.String(cli.StringOpt{
 		Name:   "graphitePrefix",
-		Value:  "",
 		Desc:   "Prefix to use. Should start with content, include the environment, and the host name. e.g. coco.pre-prod.service-name.1 or content.test.people.rw.service-name.ftaps58938-law1a-eu-t",
 		EnvVar: "GRAPHITE_PREFIX",
 	})
@@ -106,17 +104,16 @@ func main() {
 	})
 	publicAnnotationsAPIEndpoint := app.String(cli.StringOpt{
 		Name:   "publicAnnotationsApiEndpoint",
-		Value:  "/content/{uuid}/annotations/v1",
+		Value:  "/content/{uuid}/annotations/{platformVersion}",
 		Desc:   "The endpoint used for metadata retrieval.",
 		EnvVar: "PUBLIC_ANNOTATIONS_API_ENDPOINT",
 	})
 	whitelistedMetadataOriginSystemHeaders := app.Strings(cli.StringsOpt{
 		Name:   "whitelistedMetadataOriginSystemHeaders",
-		Value:  []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"},
+		Value:  []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub", "http://cmdb.ft.com/systems/brightcove"},
 		Desc:   "Origin-System-Ids that are supported to be processed from the PostPublicationEvents queue.",
 		EnvVar: "WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS",
 	})
-
 	whitelistedContentUris := app.Strings(cli.StringsOpt{
 		Name:   "whitelistedContentURIs",
 		Value:  []string{"methode-article-mapper", "wordpress-article-mapper", "brightcove-video-model-mapper"},

@@ -7,11 +7,12 @@ import (
 	"github.com/Financial-Times/post-publication-combiner/model"
 	"github.com/Financial-Times/post-publication-combiner/utils"
 	"net/http"
+	"strings"
 )
 
 type DataCombinerI interface {
-	GetCombinedModelForContent(content model.ContentModel) (model.CombinedModel, error)
-	GetCombinedModelForAnnotations(metadata model.Annotations) (model.CombinedModel, error)
+	GetCombinedModelForContent(content model.ContentModel, platformVersion string) (model.CombinedModel, error)
+	GetCombinedModelForAnnotations(metadata model.Annotations, platformVersion string) (model.CombinedModel, error)
 }
 
 type DataCombiner struct {
@@ -24,7 +25,7 @@ type contentRetrieverI interface {
 }
 
 type metadataRetrieverI interface {
-	getAnnotations(uuid string) ([]model.Annotation, error)
+	getAnnotations(uuid string, platfromVersion string) ([]model.Annotation, error)
 }
 
 type dataRetriever struct {
@@ -32,13 +33,13 @@ type dataRetriever struct {
 	client  utils.Client
 }
 
-func (dc DataCombiner) GetCombinedModelForContent(content model.ContentModel) (model.CombinedModel, error) {
+func (dc DataCombiner) GetCombinedModelForContent(content model.ContentModel, platformVersion string) (model.CombinedModel, error) {
 
 	if content.UUID == "" {
 		return model.CombinedModel{}, errors.New("Content has no UUID provided. Can't deduce annotations for it.")
 	}
 
-	ann, err := dc.MetadataRetriever.getAnnotations(content.UUID)
+	ann, err := dc.MetadataRetriever.getAnnotations(content.UUID, platformVersion)
 	if err != nil {
 		return model.CombinedModel{}, err
 	}
@@ -50,7 +51,7 @@ func (dc DataCombiner) GetCombinedModelForContent(content model.ContentModel) (m
 	}, nil
 }
 
-func (dc DataCombiner) GetCombinedModelForAnnotations(metadata model.Annotations) (model.CombinedModel, error) {
+func (dc DataCombiner) GetCombinedModelForAnnotations(metadata model.Annotations, platformVersion string) (model.CombinedModel, error) {
 
 	if metadata.UUID == "" {
 		return model.CombinedModel{}, errors.New("Annotations have no UUID referenced. Can't deduce content for it.")
@@ -69,7 +70,7 @@ func (dc DataCombiner) GetCombinedModelForAnnotations(metadata model.Annotations
 	aCh := make(chan annResponse)
 
 	go func() {
-		d, err := dc.MetadataRetriever.getAnnotations(metadata.UUID)
+		d, err := dc.MetadataRetriever.getAnnotations(metadata.UUID, platformVersion)
 		aCh <- annResponse{d, err}
 	}()
 
@@ -95,9 +96,14 @@ func (dc DataCombiner) GetCombinedModelForAnnotations(metadata model.Annotations
 	}, nil
 }
 
-func (dr dataRetriever) getAnnotations(uuid string) ([]model.Annotation, error) {
+func (dr dataRetriever) getAnnotations(uuid string, platformVersion string) ([]model.Annotation, error) {
 
 	var ann []model.Annotation
+
+	if platformVersion != "" {
+		dr.Address.Endpoint = strings.Replace(dr.Address.Endpoint, "{platformVersion}", platformVersion, -1)
+	}
+
 	b, status, err := utils.ExecuteHTTPRequest(uuid, dr.Address, dr.client)
 
 	if status == http.StatusNotFound {

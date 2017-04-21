@@ -146,7 +146,7 @@ func TestGetCombinedModelForContent(t *testing.T) {
 		combiner := DataCombiner{
 			MetadataRetriever: DummyMetadataRetriever{testCase.retrievedAnn, testCase.retrievedErr},
 		}
-		m, err := combiner.GetCombinedModelForContent(testCase.contentModel)
+		m, err := combiner.GetCombinedModelForContent(testCase.contentModel, "some_platform_version")
 		assert.Equal(t, testCase.expModel, m,
 			fmt.Sprintf("Expected model: %v was not equal with the received one: %v \n", testCase.expModel, m))
 		if testCase.expError == nil {
@@ -254,7 +254,7 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 			MetadataRetriever: DummyMetadataRetriever{testCase.retrievedAnn, testCase.retreivedAnnErr},
 		}
 
-		m, err := combiner.GetCombinedModelForAnnotations(testCase.metadata)
+		m, err := combiner.GetCombinedModelForAnnotations(testCase.metadata, "some_platform_version")
 		assert.Equal(t, testCase.expModel, m,
 			fmt.Sprintf("Expected model: %v was not equal with the received one: %v \n", testCase.expModel, m))
 		if testCase.expError == nil {
@@ -370,7 +370,7 @@ func TestGetAnnotations(t *testing.T) {
 
 	for _, testCase := range tests {
 		dr := dataRetriever{testCase.address, testCase.dc}
-		ann, err := dr.getAnnotations(testCase.uuid)
+		ann, err := dr.getAnnotations(testCase.uuid, "some_platform_version")
 		assert.Equal(t, testCase.expAnnotations, ann,
 			fmt.Sprintf("Expected annotations: %v were not equal with received ones: %v \n", testCase.expAnnotations, ann))
 		if testCase.expError == nil {
@@ -492,6 +492,6 @@ type DummyMetadataRetriever struct {
 	err error
 }
 
-func (r DummyMetadataRetriever) getAnnotations(uuid string) ([]model.Annotation, error) {
+func (r DummyMetadataRetriever) getAnnotations(uuid string, platformVersion string) ([]model.Annotation, error) {
 	return r.ann, r.err
 }

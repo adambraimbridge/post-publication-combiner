@@ -107,7 +107,7 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 	}
 
 	//combine data
-	combinedMSG, err := p.DataCombiner.GetCombinedModelForContent(cm.ContentModel)
+	combinedMSG, err := p.DataCombiner.GetCombinedModelForContent(cm.ContentModel, getPlatformVersion(cm.ContentURI))
 	if err != nil {
 		logrus.Errorf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped. %v", tid, err)
 		return
@@ -144,7 +144,7 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 	}
 
 	//combine data
-	combinedMSG, err := p.DataCombiner.GetCombinedModelForAnnotations(ann)
+	combinedMSG, err := p.DataCombiner.GetCombinedModelForAnnotations(ann, getPlatformVersion(h))
 	if err != nil {
 		logrus.Errorf("%v - Error obtaining the combined message. Content couldn't get read. Message will be skipped. %v", tid, err)
 		return
@@ -190,4 +190,12 @@ func includes(array []string, element string) bool {
 		}
 	}
 	return false
+}
+
+func getPlatformVersion(str string) string {
+	if strings.Contains(str, "brightcove") {
+		return "brightcove"
+	}
+
+	return "v1"
 }
