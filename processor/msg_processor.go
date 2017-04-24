@@ -17,6 +17,7 @@ const CombinerMessageType = "cms-combined-content-published"
 
 type Processor interface {
 	ProcessMessages()
+	ForceMessagePublish(uuid string)
 }
 
 type MsgProcessor struct {
@@ -73,6 +74,33 @@ func (p *MsgProcessor) ProcessMessages() {
 			p.processMetadataMsg(m.msg)
 		}
 	}
+}
+
+func (p *MsgProcessor) forceMessagePublish(uuid string, platformVersion string) {
+
+	tid := "tid_force_publish" + uniuri.NewLen(10) + "_post_publication_combiner"
+	logrus.Infof("Generated tid: %d", tid)
+
+	h := map[string]string{
+		"X-Request-Id":tid,
+		"Origin-System-Id":"force-publish",
+
+	}
+
+	//get combined message
+	combinedMSG, err := p.DataCombiner.(DataCombiner).getCombinedModel(uuid, platformVersion)
+	if err != nil {
+		logrus.Errorf("%v - Error obtaining the combined message, it will be skipped. %v", tid, err)
+		return
+	}
+
+	//forward data
+	err = p.forwardMsg(h, &combinedMSG)
+	if err != nil {
+		logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
+		return
+	}
+	logrus.Infof("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)
 }
 
 func (p *MsgProcessor) processContentMsg(m consumer.Message) {
