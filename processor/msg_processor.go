@@ -17,7 +17,7 @@ const CombinerMessageType = "cms-combined-content-published"
 
 type Processor interface {
 	ProcessMessages()
-	ForceMessagePublish(uuid string)
+	ForceMessagePublish(uuid string, platformVersion string) error
 }
 
 type MsgProcessor struct {
@@ -76,7 +76,7 @@ func (p *MsgProcessor) ProcessMessages() {
 	}
 }
 
-func (p *MsgProcessor) forceMessagePublish(uuid string, platformVersion string) {
+func (p *MsgProcessor) ForceMessagePublish(uuid string, platformVersion string) error {
 
 	tid := "tid_force_publish" + uniuri.NewLen(10) + "_post_publication_combiner"
 	logrus.Infof("Generated tid: %d", tid)
@@ -88,19 +88,20 @@ func (p *MsgProcessor) forceMessagePublish(uuid string, platformVersion string) 
 	}
 
 	//get combined message
-	combinedMSG, err := p.DataCombiner.(DataCombiner).getCombinedModel(uuid, platformVersion)
+	combinedMSG, err := p.DataCombiner.GetCombinedModel(uuid, platformVersion)
 	if err != nil {
 		logrus.Errorf("%v - Error obtaining the combined message, it will be skipped. %v", tid, err)
-		return
+		return err
 	}
 
 	//forward data
 	err = p.forwardMsg(h, &combinedMSG)
 	if err != nil {
 		logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
-		return
+		return err
 	}
 	logrus.Infof("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)
+	return nil
 }
 
 func (p *MsgProcessor) processContentMsg(m consumer.Message) {
@@ -116,7 +117,7 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 		return
 	}
 
-	// wordpress, brightcove, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
+	// wordpress, next-video, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
 	if !includes(p.config.SupportedContentURIs, cm.ContentURI) {
 		logrus.Infof("%v - Skipped unsupported content with contentUri: %v. ", tid, cm.ContentURI)
 		return
@@ -221,8 +222,8 @@ func includes(array []string, element string) bool {
 }
 
 func getPlatformVersion(str string) string {
-	if strings.Contains(str, "brightcove") {
-		return "brightcove"
+	if strings.Contains(str, "video") {
+		return "next-video"
 	}
 
 	return "v1"

@@ -13,6 +13,7 @@ import (
 type DataCombinerI interface {
 	GetCombinedModelForContent(content model.ContentModel, platformVersion string) (model.CombinedModel, error)
 	GetCombinedModelForAnnotations(metadata model.Annotations, platformVersion string) (model.CombinedModel, error)
+	GetCombinedModel(uuid string, platformVersion string) (model.CombinedModel, error)
 }
 
 type DataCombiner struct {
@@ -57,10 +58,10 @@ func (dc DataCombiner) GetCombinedModelForAnnotations(metadata model.Annotations
 		return model.CombinedModel{}, errors.New("Annotations have no UUID referenced. Can't deduce content for it.")
 	}
 
-	return dc.getCombinedModel(metadata.UUID, platformVersion)
+	return dc.GetCombinedModel(metadata.UUID, platformVersion)
 }
 
-func (dc DataCombiner) getCombinedModel(uuid string, platformVersion string) (model.CombinedModel, error) {
+func (dc DataCombiner) GetCombinedModel(uuid string, platformVersion string) (model.CombinedModel, error) {
 	type annResponse struct {
 		ann []model.Annotation
 		err error
