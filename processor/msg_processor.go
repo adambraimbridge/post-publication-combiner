@@ -82,9 +82,8 @@ func (p *MsgProcessor) ForceMessagePublish(uuid string, platformVersion string) 
 	logrus.Infof("Generated tid: %d", tid)
 
 	h := map[string]string{
-		"X-Request-Id":tid,
-		"Origin-System-Id":"force-publish",
-
+		"X-Request-Id":     tid,
+		"Origin-System-Id": "force-publish",
 	}
 
 	//get combined message

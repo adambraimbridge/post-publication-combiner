@@ -396,7 +396,6 @@ func TestForceMessageCombinerError(t *testing.T) {
 	assert.Equal(t, 2, len(hook.Entries))
 }
 
-
 func TestForceMessageProducerError(t *testing.T) {
 
 	allowedOrigins := []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"}
@@ -412,10 +411,10 @@ func TestForceMessageProducerError(t *testing.T) {
 						ID:        "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
 						PrefLabel: "Barclays",
 						Types: []string{"http://base-url/core/Thing",
-								"http://base-url/concept/Concept",
-								"http://base-url/organisation/Organisation",
-								"http://base-url/company/Company",
-								"http://base-url/company/PublicCompany",
+							"http://base-url/concept/Concept",
+							"http://base-url/organisation/Organisation",
+							"http://base-url/company/Company",
+							"http://base-url/company/PublicCompany",
 						},
 						Predicate: "http://base-url/about",
 						ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
@@ -423,7 +422,7 @@ func TestForceMessageProducerError(t *testing.T) {
 						FactsetID: "factset-id1",
 						TmeIDs:    []string{"tme_id1"},
 						UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
-								"factset-generated-uuid"},
+							"factset-generated-uuid"},
 						PlatformVersion: "v1",
 					},
 				},
