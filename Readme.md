@@ -57,6 +57,7 @@ Please check --help for more details.
 
 Test:
     You can verify the service's behavior by checking the consumed and the generated kafka messages.
+    You can also use the [force enpoint](#force)
 
 ## Build and deployment
 
@@ -64,8 +65,19 @@ Test:
 * CI provided by CircleCI: [post-publication-combiner](https://circleci.com/gh/Financial-Times/post-publication-combiner)
 
 ## Service/Utility endpoints
-This service does not provide any endpoints (neither force ones), because the events should reflect the data received from one of the PostPublication events.
-It makes no sense to post something directly to the latter (combined) queue.
+<a name="force">Force endpoint</a>
+
+`/{content-type}/{uuid}`
+###POST
+Creates and forwards a CombinedPostPublicationEvent to the queue for the provided UUID.
+
+Supported content types: `article`, `blogPost`, `video`
+Request body should be empty.
+
+Returns 200 if the message was published successfully
+
+Returns 400 for unrecognized content-type or and invalid uuid
+
 
 ## Healthchecks
 Our standard admin endpoints are:
