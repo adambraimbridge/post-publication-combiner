@@ -14,7 +14,14 @@ import (
 	"strings"
 )
 
-const CombinerMessageType = "cms-combined-content-published"
+const (
+	CombinerMessageType = "cms-combined-content-published"
+	// PlatformV1 V1 platform (Falcon)
+	PlatformV1 = "v1"
+
+	// PlatformVideo current video platform
+	PlatformVideo = "next-video"
+)
 
 // NotFoundError used when the content can not be found by the platform
 var NotFoundError = errors.New("Content not found")
@@ -232,7 +239,7 @@ func includes(array []string, element string) bool {
 
 func getPlatformVersion(str string) string {
 	if strings.Contains(str, "video") {
-		return "next-video"
+		return PlatformVideo
 	}
 
 	return "v1"

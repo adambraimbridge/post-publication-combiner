@@ -11,13 +11,6 @@ import (
 const (
 	idpathVar          = "id"
 	contentTypePathVar = "content-type"
-
-	// PlatformV1 V1 platform (Falcon)
-	PlatformV1 = "v1"
-
-	// PlatformVideo current video platform
-	PlatformVideo = "next-video"
-
 	contentTypeArticle = "article"
 	contentTypeVideo   = "video"
 )
@@ -47,10 +40,10 @@ func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *
 
 	}
 
-	platform := PlatformV1
+	platform := processor.PlatformV1
 
 	if contentType == contentTypeVideo {
-		platform = PlatformVideo
+		platform = processor.PlatformVideo
 	}
 
 	err := handler.processor.ForceMessagePublish(uuid, platform)
@@ -72,8 +65,5 @@ func isValidContentType(contentType string) bool {
 
 func isValidUUID(id string) bool {
 	_, err := uuid.FromString(id)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
