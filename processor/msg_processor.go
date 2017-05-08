@@ -2,6 +2,7 @@ package processor
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/post-publication-combiner/model"
@@ -14,6 +15,9 @@ import (
 )
 
 const CombinerMessageType = "cms-combined-content-published"
+
+// NotFoundError used when the content can not be found by the platform
+var NotFoundError = errors.New("Content not found")
 
 type Processor interface {
 	ProcessMessages()
@@ -90,6 +94,12 @@ func (p *MsgProcessor) ForceMessagePublish(uuid string, platformVersion string) 
 	combinedMSG, err := p.DataCombiner.GetCombinedModel(uuid, platformVersion)
 	if err != nil {
 		logrus.Errorf("%v - Error obtaining the combined message, it will be skipped. %v", tid, err)
+		return err
+	}
+
+	if combinedMSG.Content.UUID == "" && combinedMSG.Metadata == nil {
+		err := NotFoundError
+		logrus.Errorf("%v - Could not find content with uuid %s. %v", tid, uuid, err)
 		return err
 	}
 

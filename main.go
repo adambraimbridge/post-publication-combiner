@@ -13,22 +13,14 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
 	"github.com/rcrowley/go-metrics"
-	"github.com/satori/go.uuid"
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 )
-
-const (
-	idpathVar          = "id"
-	contentTypePathVar = "content-type"
-	platformV1         = "v1"
-	platformVideo      = "next-video"
-	contentTypeVideo   = "video"
-)
-
-var contentTypes = []string{"article", "blogPost", "video"}
 
 func main() {
 
@@ -238,61 +230,31 @@ func routeRequests(port *string, requestHandler *requestHandler, healthService *
 
 	r.Handle("/", monitoringRouter)
 
-	if err := http.ListenAndServe(":"+*port, r); err != nil {
-		logrus.Fatalf("Unable to start: %v", err)
-	}
-}
+	server := &http.Server{Addr: ":" + *port, Handler: r}
 
-type requestHandler struct {
-	processor processor.Processor
-}
+	wg := sync.WaitGroup{}
 
-func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *http.Request) {
-	uuid := mux.Vars(request)[idpathVar]
-	contentType := mux.Vars(request)[contentTypePathVar]
-
-	defer request.Body.Close()
-
-	if !isValidContentType(contentType) {
-		logrus.Errorf("Invalid content type %s", contentType)
-		writer.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if !isValidUUID(uuid) {
-		logrus.Errorf("Invalid UUID %s", uuid)
-		writer.WriteHeader(http.StatusBadRequest)
-		return
-
-	}
-
-	platform := platformV1
-
-	if contentType == contentTypeVideo {
-		platform = platformVideo
-	}
-
-	err := handler.processor.ForceMessagePublish(uuid, platform)
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-	} else {
-		writer.WriteHeader(http.StatusOK)
-	}
-}
-
-func isValidContentType(contentType string) bool {
-	for _, ct := range contentTypes {
-		if contentType == ct {
-			return true
+	wg.Add(1)
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			logrus.Infof("HTTP server closing with message: %v", err)
 		}
+		wg.Done()
+	}()
+
+	waitForSignal()
+	logrus.Infof("[Shutdown] PostPublicationCombiner is shutting down")
+
+	if err := server.Close(); err != nil {
+		logrus.Errorf("Unable to stop http server: %v", err)
 	}
-	return false
+
+	wg.Wait()
+
 }
 
-func isValidUUID(id string) bool {
-	_, err := uuid.FromString(id)
-	if err != nil {
-		return false
-	}
-	return true
+func waitForSignal() {
+	ch := make(chan os.Signal)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	<-ch
 }

@@ -46,9 +46,9 @@ func (dc DataCombiner) GetCombinedModelForContent(content model.ContentModel, pl
 	}
 
 	return model.CombinedModel{
-		UUID:       content.UUID,
-		Content:    content,
-		V1Metadata: ann,
+		UUID:     content.UUID,
+		Content:  content,
+		Metadata: ann,
 	}, nil
 }
 
@@ -95,9 +95,9 @@ func (dc DataCombiner) GetCombinedModel(uuid string, platformVersion string) (mo
 	}
 
 	return model.CombinedModel{
-		UUID:       uuid,
-		Content:    c.c,
-		V1Metadata: a.ann,
+		UUID:     uuid,
+		Content:  c.c,
+		Metadata: a.ann,
 	}, nil
 }
 

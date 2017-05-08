@@ -71,12 +71,14 @@ Test:
 ###POST
 Creates and forwards a CombinedPostPublicationEvent to the queue for the provided UUID.
 
-Supported content types: `article`, `blogPost`, `video`
+Supported content types: `article`, `video`
 Request body should be empty.
 
 Returns 200 if the message was published successfully
 
-Returns 400 for unrecognized content-type or and invalid uuid
+Returns 400 for unrecognized content-type or an invalid uuid
+
+Returns 404 for missing content and metadata for the  provided uuid
 
 
 ## Healthchecks

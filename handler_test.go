@@ -20,7 +20,6 @@ func TestPostMessage(t *testing.T) {
 		status          int
 	}{
 		{"article", "a78cf3ea-b221-46f8-8cbc-a61e5e454e88", "v1", nil, 200},
-		{"blogPost", "54b6696a-4d17-423d-a530-72542e93b0cd", "v1", nil, 200},
 		{"video", "f1ce611d-caf8-4d82-b129-3f43b50a1fd0", "next-video", nil, 200},
 		{"invalid", "0ead533c-751d-410b-aac2-4a203fd6e8ce", "", nil, 400},
 		{"article", "invalid", "", nil, 400},

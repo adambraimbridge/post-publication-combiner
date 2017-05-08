@@ -1,6 +1,7 @@
 *.iml
-*.exe
 .idea
-.DS_Store
+post-publication-combiner*
 vendor/*/
-post-publication-combiner
+.project
+.vscode
+.DS_Store
