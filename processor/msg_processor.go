@@ -253,6 +253,5 @@ func getPlatformVersion(str string) string {
 	if strings.Contains(str, "video") {
 		return PlatformVideo
 	}
-
-	return "v1"
+	return PlatformV1
 }
