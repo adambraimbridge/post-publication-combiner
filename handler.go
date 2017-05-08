@@ -47,11 +47,17 @@ func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *
 	}
 
 	err := handler.processor.ForceMessagePublish(uuid, platform)
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-	} else {
+	switch err {
+	case nil:
 		writer.WriteHeader(http.StatusOK)
+	case processor.NotFoundError:
+		writer.WriteHeader(http.StatusNotFound)
+	case processor.InvalidContentTypeError:
+		writer.WriteHeader(http.StatusUnprocessableEntity)
+	default:
+		writer.WriteHeader(http.StatusInternalServerError)
 	}
+
 }
 
 func isValidContentType(contentType string) bool {

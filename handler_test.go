@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/Financial-Times/post-publication-combiner/processor"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -24,6 +25,8 @@ func TestPostMessage(t *testing.T) {
 		{"invalid", "0ead533c-751d-410b-aac2-4a203fd6e8ce", "", nil, 400},
 		{"article", "invalid", "", nil, 400},
 		{"article", "a78cf3ea-b221-46f8-8cbc-a61e5e454e88", "v1", errors.New("test error"), 500},
+		{"article", "a78cf3ea-b221-46f8-8cbc-a61e5e454e88", "v1", processor.NotFoundError, 404},
+		{"article", "a78cf3ea-b221-46f8-8cbc-a61e5e454e88", "v1", processor.InvalidContentTypeError, 422},
 	}
 
 	p := &DummyProcessor{t: t}

@@ -123,7 +123,13 @@ func main() {
 		Name:   "whitelistedContentURIs",
 		Value:  []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"},
 		Desc:   "Space separated list with content URI substrings - to identify accepted content types.",
-		EnvVar: "WHITELISTED_CONTENT_URI",
+		EnvVar: "WHITELISTED_CONTENT_URIS",
+	})
+	whitelistedContentTypes := app.Strings(cli.StringsOpt{
+		Name:   "whitelistedContentTypes",
+		Value:  []string{"Article", "Video", ""},
+		Desc:   "Space separated list with content types - to identify accepted content types.",
+		EnvVar: "WHITELISTED_CONTENT_TYPES",
 	})
 
 	app.Action = func() {
@@ -170,6 +176,7 @@ func main() {
 		// process and forward messages
 		pQConf := processor.NewProducerConfig(*kafkaProxyAddress, *combinedTopic, *kafkaProxyRoutingHeader)
 		processorConf := processor.NewMsgProcessorConfig(
+			*whitelistedContentTypes,
 			*whitelistedContentUris,
 			*whitelistedMetadataOriginSystemHeaders,
 			*contentTopic,
