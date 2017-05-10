@@ -127,7 +127,7 @@ func main() {
 	})
 	whitelistedContentTypes := app.Strings(cli.StringsOpt{
 		Name:   "whitelistedContentTypes",
-		Value:  []string{"Article", "Video", ""},
+		Value:  []string{"Article", "Video", "MediaResource", ""},
 		Desc:   "Space separated list with content types - to identify accepted content types.",
 		EnvVar: "WHITELISTED_CONTENT_TYPES",
 	})
