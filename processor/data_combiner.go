@@ -26,7 +26,7 @@ type contentRetrieverI interface {
 }
 
 type metadataRetrieverI interface {
-	getAnnotations(uuid string, platfromVersion string) ([]model.Annotation, error)
+	getAnnotations(uuid string, platformVersion string) ([]model.Annotation, error)
 }
 
 type dataRetriever struct {

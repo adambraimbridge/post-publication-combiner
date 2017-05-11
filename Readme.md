@@ -49,7 +49,7 @@ The available parameters are:
 * docStoreBaseURL - document-store-api base url (http://localhost:8080/__document-store-api)
 * docStoreApiEndpoint - the endpoint for content retrieval (/content/{uuid})
 * publicAnnotationsApiBaseURL - public-annotations-api base url (http://localhost:8080/__public-annotations-api)
-* publicAnnotationsApiEndpoint - the endpoint for v1 metadata retrieval (/content/{uuid}/annotations/v1)
+* publicAnnotationsApiEndpoint - the endpoint for metadata retrieval (/content/{uuid}/annotations/{platformVersion})
 * whitelistedMetadataOriginSystemHeaders - Origin-System-Ids that are supported to be processed from the PostPublicationEvents queue
 * whitelistedContentURIs - Space separated list with content URI substrings - to identify accepted content types
 
@@ -76,10 +76,11 @@ Request body should be empty.
 
 Returns 200 if the message was published successfully
 
-Returns 400 for unrecognized content-type or an invalid uuid
+Returns 422 (Unprocessable Entity) for unrecognized content-type or an invalid uuid
 
-Returns 404 for missing content and metadata for the  provided uuid
+Returns 404 for missing content and metadata for the provided uuid
 
+Returns 500 for other processing errors
 
 ## Healthchecks
 Our standard admin endpoints are:
