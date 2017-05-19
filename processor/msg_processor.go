@@ -2,6 +2,7 @@ package processor
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/post-publication-combiner/model"
@@ -13,11 +14,22 @@ import (
 	"strings"
 )
 
-const CombinerMessageType = "cms-combined-content-published"
+const (
+	CombinerMessageType = "cms-combined-content-published"
+	// PlatformV1 V1 platform (Falcon)
+	PlatformV1 = "v1"
+
+	// PlatformVideo current video platform
+	PlatformVideo = "next-video"
+)
+
+// NotFoundError used when the content can not be found by the platform
+var NotFoundError = errors.New("Content not found")
+var InvalidContentTypeError = errors.New("Invalid content type")
 
 type Processor interface {
 	ProcessMessages()
-	ForceMessagePublish(uuid string)
+	ForceMessagePublish(uuid string, platformVersion string) error
 }
 
 type MsgProcessor struct {
@@ -29,18 +41,20 @@ type MsgProcessor struct {
 }
 
 type MsgProcessorConfig struct {
-	SupportedContentURIs []string
-	SupportedHeaders     []string
-	ContentTopic         string
-	MetadataTopic        string
+	SupportedContentTypes []string
+	SupportedContentURIs  []string
+	SupportedHeaders      []string
+	ContentTopic          string
+	MetadataTopic         string
 }
 
-func NewMsgProcessorConfig(supportedURIs []string, supportedHeaders []string, contentTopic string, metadataTopic string) MsgProcessorConfig {
+func NewMsgProcessorConfig(supportedContentTypes []string, supportedURIs []string, supportedHeaders []string, contentTopic string, metadataTopic string) MsgProcessorConfig {
 	return MsgProcessorConfig{
-		SupportedContentURIs: supportedURIs,
-		SupportedHeaders:     supportedHeaders,
-		ContentTopic:         contentTopic,
-		MetadataTopic:        metadataTopic,
+		SupportedContentTypes: supportedContentTypes,
+		SupportedContentURIs:  supportedURIs,
+		SupportedHeaders:      supportedHeaders,
+		ContentTopic:          contentTopic,
+		MetadataTopic:         metadataTopic,
 	}
 }
 
@@ -76,31 +90,31 @@ func (p *MsgProcessor) ProcessMessages() {
 	}
 }
 
-func (p *MsgProcessor) forceMessagePublish(uuid string, platformVersion string) {
+func (p *MsgProcessor) ForceMessagePublish(uuid string, platformVersion string) error {
 
 	tid := "tid_force_publish" + uniuri.NewLen(10) + "_post_publication_combiner"
 	logrus.Infof("Generated tid: %d", tid)
 
 	h := map[string]string{
-		"X-Request-Id":tid,
-		"Origin-System-Id":"force-publish",
-
+		"X-Request-Id":     tid,
+		"Origin-System-Id": "force-publish",
 	}
 
 	//get combined message
-	combinedMSG, err := p.DataCombiner.(DataCombiner).getCombinedModel(uuid, platformVersion)
+	combinedMSG, err := p.DataCombiner.GetCombinedModel(uuid, platformVersion)
 	if err != nil {
 		logrus.Errorf("%v - Error obtaining the combined message, it will be skipped. %v", tid, err)
-		return
+		return err
+	}
+
+	if combinedMSG.Content.UUID == "" && combinedMSG.Metadata == nil {
+		err := NotFoundError
+		logrus.Errorf("%v - Could not find content with uuid %s. %v", tid, uuid, err)
+		return err
 	}
 
 	//forward data
-	err = p.forwardMsg(h, &combinedMSG)
-	if err != nil {
-		logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
-		return
-	}
-	logrus.Infof("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)
+	return p.filterAndForwardMsg(h, &combinedMSG, tid)
 }
 
 func (p *MsgProcessor) processContentMsg(m consumer.Message) {
@@ -116,8 +130,8 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 		return
 	}
 
-	// wordpress, brightcove, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
-	if !includes(p.config.SupportedContentURIs, cm.ContentURI) {
+	// wordpress, next-video, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
+	if !containsSubstringOf(p.config.SupportedContentURIs, cm.ContentURI) {
 		logrus.Infof("%v - Skipped unsupported content with contentUri: %v. ", tid, cm.ContentURI)
 		return
 	}
@@ -142,13 +156,7 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 	}
 
 	//forward data
-	err = p.forwardMsg(m.Headers, &combinedMSG)
-	if err != nil {
-		logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
-		return
-	}
-	logrus.Infof("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)
-
+	p.filterAndForwardMsg(m.Headers, &combinedMSG, tid)
 }
 
 func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
@@ -158,7 +166,7 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 	h := m.Headers["Origin-System-Id"]
 
 	//decide based on the origin system header - whether you want to process the message or not
-	if !includes(p.config.SupportedHeaders, h) {
+	if !containsSubstringOf(p.config.SupportedHeaders, h) {
 		logrus.Infof("%v - Skipped unsupported annotations with Origin-System-Id: %v. ", tid, h)
 		return
 	}
@@ -177,15 +185,27 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 		logrus.Errorf("%v - Error obtaining the combined message. Content couldn't get read. Message will be skipped. %v", tid, err)
 		return
 	}
+	p.filterAndForwardMsg(m.Headers, &combinedMSG, tid)
+}
+
+func (p *MsgProcessor) filterAndForwardMsg(headers map[string]string, combinedMSG *model.CombinedModel, tid string) error {
+	if !combinedMSG.Content.MarkedDeleted && !isTypeAllowed(p.config.SupportedContentTypes, combinedMSG.Content.Type) {
+		logrus.Infof("%v - Skipped unsupported content with type: %v", tid, combinedMSG.Content.Type)
+		return InvalidContentTypeError
+	}
 
 	//forward data
-	err = p.forwardMsg(m.Headers, &combinedMSG)
+	err := p.forwardMsg(headers, combinedMSG)
 	if err != nil {
 		logrus.Errorf("%v - Error sending transformed message to queue: %v", tid, err)
-		return
+		return err
 	}
 	logrus.Infof("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)
+	return nil
+}
 
+func isTypeAllowed(allowedTypes []string, value string) bool {
+	return contains(allowedTypes, value)
 }
 
 func (p *MsgProcessor) forwardMsg(headers map[string]string, model *model.CombinedModel) error {
@@ -211,7 +231,7 @@ func extractTID(headers map[string]string) string {
 	return tid
 }
 
-func includes(array []string, element string) bool {
+func containsSubstringOf(array []string, element string) bool {
 	for _, e := range array {
 		if strings.Contains(element, e) {
 			return true
@@ -220,10 +240,18 @@ func includes(array []string, element string) bool {
 	return false
 }
 
-func getPlatformVersion(str string) string {
-	if strings.Contains(str, "brightcove") {
-		return "brightcove"
+func contains(array []string, element string) bool {
+	for _, e := range array {
+		if element == e {
+			return true
+		}
 	}
+	return false
+}
 
-	return "v1"
+func getPlatformVersion(str string) string {
+	if strings.Contains(str, "video") {
+		return PlatformVideo
+	}
+	return PlatformV1
 }

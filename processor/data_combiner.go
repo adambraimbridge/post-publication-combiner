@@ -13,6 +13,7 @@ import (
 type DataCombinerI interface {
 	GetCombinedModelForContent(content model.ContentModel, platformVersion string) (model.CombinedModel, error)
 	GetCombinedModelForAnnotations(metadata model.Annotations, platformVersion string) (model.CombinedModel, error)
+	GetCombinedModel(uuid string, platformVersion string) (model.CombinedModel, error)
 }
 
 type DataCombiner struct {
@@ -25,7 +26,7 @@ type contentRetrieverI interface {
 }
 
 type metadataRetrieverI interface {
-	getAnnotations(uuid string, platfromVersion string) ([]model.Annotation, error)
+	getAnnotations(uuid string, platformVersion string) ([]model.Annotation, error)
 }
 
 type dataRetriever struct {
@@ -45,9 +46,9 @@ func (dc DataCombiner) GetCombinedModelForContent(content model.ContentModel, pl
 	}
 
 	return model.CombinedModel{
-		UUID:       content.UUID,
-		Content:    content,
-		V1Metadata: ann,
+		UUID:     content.UUID,
+		Content:  content,
+		Metadata: ann,
 	}, nil
 }
 
@@ -57,10 +58,10 @@ func (dc DataCombiner) GetCombinedModelForAnnotations(metadata model.Annotations
 		return model.CombinedModel{}, errors.New("Annotations have no UUID referenced. Can't deduce content for it.")
 	}
 
-	return dc.getCombinedModel(metadata.UUID, platformVersion)
+	return dc.GetCombinedModel(metadata.UUID, platformVersion)
 }
 
-func (dc DataCombiner) getCombinedModel(uuid string, platformVersion string) (model.CombinedModel, error) {
+func (dc DataCombiner) GetCombinedModel(uuid string, platformVersion string) (model.CombinedModel, error) {
 	type annResponse struct {
 		ann []model.Annotation
 		err error
@@ -94,9 +95,9 @@ func (dc DataCombiner) getCombinedModel(uuid string, platformVersion string) (mo
 	}
 
 	return model.CombinedModel{
-		UUID:       uuid,
-		Content:    c.c,
-		V1Metadata: a.ann,
+		UUID:     uuid,
+		Content:  c.c,
+		Metadata: a.ann,
 	}, nil
 }
 

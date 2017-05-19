@@ -3,17 +3,22 @@ package main
 import (
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
+	"github.com/Financial-Times/http-handlers-go/httphandlers"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/post-publication-combiner/processor"
 	"github.com/Financial-Times/post-publication-combiner/utils"
-	"github.com/Financial-Times/service-status-go/httphandlers"
+	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
+	"github.com/rcrowley/go-metrics"
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 )
 
@@ -110,15 +115,21 @@ func main() {
 	})
 	whitelistedMetadataOriginSystemHeaders := app.Strings(cli.StringsOpt{
 		Name:   "whitelistedMetadataOriginSystemHeaders",
-		Value:  []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub", "http://cmdb.ft.com/systems/brightcove"},
+		Value:  []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub", "http://cmdb.ft.com/systems/next-video-editor"},
 		Desc:   "Origin-System-Ids that are supported to be processed from the PostPublicationEvents queue.",
 		EnvVar: "WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS",
 	})
 	whitelistedContentUris := app.Strings(cli.StringsOpt{
 		Name:   "whitelistedContentURIs",
-		Value:  []string{"methode-article-mapper", "wordpress-article-mapper", "brightcove-video-model-mapper"},
+		Value:  []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"},
 		Desc:   "Space separated list with content URI substrings - to identify accepted content types.",
-		EnvVar: "WHITELISTED_CONTENT_URI",
+		EnvVar: "WHITELISTED_CONTENT_URIS",
+	})
+	whitelistedContentTypes := app.Strings(cli.StringsOpt{
+		Name:   "whitelistedContentTypes",
+		Value:  []string{"Article", "Video", "MediaResource", ""},
+		Desc:   "Space separated list with content types - to identify accepted content types.",
+		EnvVar: "WHITELISTED_CONTENT_TYPES",
 	})
 
 	app.Action = func() {
@@ -165,6 +176,7 @@ func main() {
 		// process and forward messages
 		pQConf := processor.NewProducerConfig(*kafkaProxyAddress, *combinedTopic, *kafkaProxyRoutingHeader)
 		processorConf := processor.NewMsgProcessorConfig(
+			*whitelistedContentTypes,
 			*whitelistedContentUris,
 			*whitelistedMetadataOriginSystemHeaders,
 			*contentTopic,
@@ -179,8 +191,7 @@ func main() {
 			processorConf)
 		go msgProcessor.ProcessMessages()
 
-		// route admin requests
-		routeRequests(port, NewCombinerHealthcheck(*kafkaProxyAddress, *kafkaProxyRoutingHeader, &client, *contentTopic, *metadataTopic, *combinedTopic, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
+		routeRequests(port, &requestHandler{processor: msgProcessor}, NewCombinerHealthcheck(*kafkaProxyAddress, *kafkaProxyRoutingHeader, &client, *contentTopic, *metadataTopic, *combinedTopic, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
 	}
 
 	logrus.SetLevel(logrus.InfoLevel)
@@ -192,13 +203,13 @@ func main() {
 	}
 }
 
-func routeRequests(port *string, healthService *HealthcheckHandler) {
+func routeRequests(port *string, requestHandler *requestHandler, healthService *HealthcheckHandler) {
 
-	r := mux.NewRouter()
+	r := http.NewServeMux()
 
-	r.Path(httphandlers.BuildInfoPath).HandlerFunc(httphandlers.BuildInfoHandler)
-	r.Path(httphandlers.PingPath).HandlerFunc(httphandlers.PingHandler)
-	r.Path(httphandlers.GTGPath).HandlerFunc(httphandlers.NewGoodToGoHandler(healthService.gtgCheck))
+	r.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
+	r.HandleFunc(status.PingPath, status.PingHandler)
+	r.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.gtgCheck))
 
 	checks := []health.Check{
 		checkPostMetadataPublicationFoundHealthcheck(healthService),
@@ -215,9 +226,42 @@ func routeRequests(port *string, healthService *HealthcheckHandler) {
 		Checks:      checks,
 	}
 
-	r.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(health.Handler(hc))})
+	r.Handle("/__health", handlers.MethodHandler{"GET": http.HandlerFunc(health.Handler(hc))})
 
-	if err := http.ListenAndServe(":"+*port, r); err != nil {
-		logrus.Fatalf("Unable to start: %v", err)
+	servicesRouter := mux.NewRouter()
+	servicesRouter.HandleFunc("/{content-type}/{id}", requestHandler.postMessage).Methods("POST")
+
+	var monitoringRouter http.Handler = servicesRouter
+	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(logrus.StandardLogger(), monitoringRouter)
+	monitoringRouter = httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
+
+	r.Handle("/", monitoringRouter)
+
+	server := &http.Server{Addr: ":" + *port, Handler: r}
+
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			logrus.Infof("HTTP server closing with message: %v", err)
+		}
+		wg.Done()
+	}()
+
+	waitForSignal()
+	logrus.Infof("[Shutdown] PostPublicationCombiner is shutting down")
+
+	if err := server.Close(); err != nil {
+		logrus.Errorf("Unable to stop http server: %v", err)
 	}
+
+	wg.Wait()
+
+}
+
+func waitForSignal() {
+	ch := make(chan os.Signal)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	<-ch
 }

@@ -115,7 +115,7 @@ func TestGetCombinedModelForContent(t *testing.T) {
 					MainImage:          "2934de46-5240-4c7d-8576-f12ae12e4a37",
 					PublishReference:   "tid_unique_reference",
 				},
-				V1Metadata: []model.Annotation{
+				Metadata: []model.Annotation{
 					{
 						Thing: model.Thing{
 							ID:        "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
@@ -227,7 +227,7 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 					Title: "title",
 					Body:  "body",
 				},
-				V1Metadata: []model.Annotation{
+				Metadata: []model.Annotation{
 					{model.Thing{
 						ID:        "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
 						PrefLabel: "Barclays",
