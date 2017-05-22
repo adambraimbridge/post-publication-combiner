@@ -18,9 +18,11 @@ const (
 	CombinerMessageType = "cms-combined-content-published"
 	// PlatformV1 V1 platform (Falcon)
 	PlatformV1 = "v1"
-
 	// PlatformVideo current video platform
 	PlatformVideo = "next-video"
+
+	contentTypeVideo = "Video"
+	videoAuthority   = "http://api.ft.com/system/NEXT-VIDEO-EDITOR"
 )
 
 // NotFoundError used when the content can not be found by the platform
@@ -29,7 +31,7 @@ var InvalidContentTypeError = errors.New("Invalid content type")
 
 type Processor interface {
 	ProcessMessages()
-	ForceMessagePublish(uuid string, platformVersion string) error
+	ForceMessagePublish(uuid string) error
 }
 
 type MsgProcessor struct {
@@ -90,7 +92,7 @@ func (p *MsgProcessor) ProcessMessages() {
 	}
 }
 
-func (p *MsgProcessor) ForceMessagePublish(uuid string, platformVersion string) error {
+func (p *MsgProcessor) ForceMessagePublish(uuid string) error {
 
 	tid := "tid_force_publish" + uniuri.NewLen(10) + "_post_publication_combiner"
 	logrus.Infof("Generated tid: %d", tid)
@@ -101,7 +103,7 @@ func (p *MsgProcessor) ForceMessagePublish(uuid string, platformVersion string) 
 	}
 
 	//get combined message
-	combinedMSG, err := p.DataCombiner.GetCombinedModel(uuid, platformVersion)
+	combinedMSG, err := p.DataCombiner.GetCombinedModel(uuid)
 	if err != nil {
 		logrus.Errorf("%v - Error obtaining the combined message, it will be skipped. %v", tid, err)
 		return err
