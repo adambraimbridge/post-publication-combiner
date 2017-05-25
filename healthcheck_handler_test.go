@@ -29,7 +29,7 @@ func TestCheckIfDocumentStoreIsReachable_Errors(t *testing.T) {
 
 	resp, err := h.checkIfDocumentStoreIsReachable()
 	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", expError, err))
-	assert.Equal(t, "", resp)
+	assert.Empty(t, resp)
 }
 
 func TestCheckIfDocumentStoreIsReachable_Succeeds(t *testing.T) {
@@ -59,7 +59,7 @@ func TestCheckIfPublicAnnotationsApiIsReachable_Errors(t *testing.T) {
 
 	resp, err := h.checkIfPublicAnnotationsAPIIsReachable()
 	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", expError, err))
-	assert.Equal(t, "", resp)
+	assert.Empty(t, resp)
 }
 
 func TestCheckIfPublicAnnotationsApiIsReachable_Succeeds(t *testing.T) {
@@ -104,7 +104,7 @@ func TestCheckIfKafkaProxyIsReachable_Errors(t *testing.T) {
 
 	resp, err := h.checkIfKafkaProxyIsReachable()
 	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", expError, err))
-	assert.Equal(t, "", resp)
+	assert.Empty(t, resp)
 }
 
 func TestGtgCheck_Good(t *testing.T) {
