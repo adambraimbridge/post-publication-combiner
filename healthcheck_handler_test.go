@@ -3,16 +3,21 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/Financial-Times/post-publication-combiner/utils"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+const (
+	DocStoreAPIPath          = "/doc-store-api"
+	PublicAnnotationsAPIPath = "/public-annotations-api"
 )
 
 func TestCheckIfDocumentStoreIsReachable_Errors(t *testing.T) {
-
 	expError := errors.New("some error")
 	dc := dummyClient{
 		err: expError,
@@ -24,7 +29,7 @@ func TestCheckIfDocumentStoreIsReachable_Errors(t *testing.T) {
 
 	resp, err := h.checkIfDocumentStoreIsReachable()
 	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", expError, err))
-	assert.Equal(t, ResponseOK, resp)
+	assert.Equal(t, "", resp)
 }
 
 func TestCheckIfDocumentStoreIsReachable_Succeeds(t *testing.T) {
@@ -43,7 +48,6 @@ func TestCheckIfDocumentStoreIsReachable_Succeeds(t *testing.T) {
 }
 
 func TestCheckIfPublicAnnotationsApiIsReachable_Errors(t *testing.T) {
-
 	expError := errors.New("some error")
 	dc := dummyClient{
 		err: expError,
@@ -55,7 +59,7 @@ func TestCheckIfPublicAnnotationsApiIsReachable_Errors(t *testing.T) {
 
 	resp, err := h.checkIfPublicAnnotationsAPIIsReachable()
 	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", expError, err))
-	assert.Equal(t, ResponseOK, resp)
+	assert.Equal(t, "", resp)
 }
 
 func TestCheckIfPublicAnnotationsApiIsReachable_Succeeds(t *testing.T) {
@@ -73,58 +77,111 @@ func TestCheckIfPublicAnnotationsApiIsReachable_Succeeds(t *testing.T) {
 	assert.Equal(t, ResponseOK, resp)
 }
 
-func TestCheckIfTopicIsPresent_HTTP_Call_Errors(t *testing.T) {
+func TestCheckIfKafkaProxyIsReachable_Succeeds(t *testing.T) {
+	dc := dummyClient{
+		statusCode: http.StatusOK,
+		body:       "all good",
+	}
+	h := HealthcheckHandler{
+		proxyAddress: "kafka-proxy-address",
+		httpClient:   &dc,
+	}
 
-	tests := []struct {
-		client   utils.Client
-		topic    string
-		expError error
+	resp, err := h.checkIfKafkaProxyIsReachable()
+	assert.Nil(t, err)
+	assert.Equal(t, ResponseOK, resp)
+}
+
+func TestCheckIfKafkaProxyIsReachable_Errors(t *testing.T) {
+	expError := errors.New("some error")
+	dc := dummyClient{
+		err: expError,
+	}
+	h := HealthcheckHandler{
+		proxyAddress: "kafka-proxy-address",
+		httpClient:   &dc,
+	}
+
+	resp, err := h.checkIfKafkaProxyIsReachable()
+	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", expError, err))
+	assert.Equal(t, "", resp)
+}
+
+func TestGtgCheck_Good(t *testing.T) {
+	dc := dummyClient{
+		statusCode: http.StatusOK,
+	}
+	h := HealthcheckHandler{
+		httpClient:                  &dc,
+		docStoreAPIBaseURL:          "doc-store-base-url",
+		proxyAddress:                "kafka-proxy-address",
+		publicAnnotationsAPIBaseURL: "pub-ann-base-url",
+	}
+
+	status := h.gtgCheck()
+	assert.True(t, status.GoodToGo)
+	assert.Empty(t, status.Message)
+}
+
+func TestGtgCheck_Bad(t *testing.T) {
+	testCases := []struct {
+		description       string
+		kafkaProxyStatus  int
+		docStoreAPIStatus int
+		pubAnnAPIStatus   int
 	}{
 		{
-			dummyClient{
-				err: errors.New("some error"),
-			},
-			"some-topic",
-			errors.New("some error"),
+			description:       "KafkaProxy GTG endpoint returns 503",
+			kafkaProxyStatus:  503,
+			docStoreAPIStatus: 200,
+			pubAnnAPIStatus:   200,
 		},
 		{
-			dummyClient{
-				statusCode: http.StatusOK,
-				body:       "cannot-be-unmarshalled",
-			},
-			"some-topic",
-			errors.New("invalid character"),
+			description:       "DocumentStoreApi GTG endpoint returns 503",
+			kafkaProxyStatus:  200,
+			docStoreAPIStatus: 503,
+			pubAnnAPIStatus:   200,
 		},
 		{
-			dummyClient{
-				statusCode: http.StatusOK,
-				body:       `["topic1","topic2"]`,
-			},
-			"some-topic",
-			fmt.Errorf("Connection could be established to kafka-proxy, but topic %s was not found", "some-topic"),
-		},
-		{
-			dummyClient{
-				statusCode: http.StatusOK,
-				body:       `["topic1","topic2"]`,
-			},
-			"topic1",
-			nil,
+			description:       "PublicAnnotationsApi GTG endpoint returns 503",
+			kafkaProxyStatus:  200,
+			docStoreAPIStatus: 200,
+			pubAnnAPIStatus:   503,
 		},
 	}
 
-	for _, testCase := range tests {
-		h := HealthcheckHandler{
-			proxyAddress: "proxy-address",
-			httpClient:   testCase.client,
-		}
-		err := checkIfTopicIsPresent(&h, testCase.topic)
-		if testCase.expError == nil {
-			assert.Nil(t, err)
-		} else {
-			assert.Contains(t, err.Error(), testCase.expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", testCase.expError, err))
-		}
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			server := getMockedServer(tc.docStoreAPIStatus, tc.pubAnnAPIStatus, tc.kafkaProxyStatus)
+			defer server.Close()
+
+			h := HealthcheckHandler{
+				httpClient:                  http.DefaultClient,
+				docStoreAPIBaseURL:          server.URL + DocStoreAPIPath,
+				proxyAddress:                server.URL,
+				publicAnnotationsAPIBaseURL: server.URL + PublicAnnotationsAPIPath,
+			}
+
+			status := h.gtgCheck()
+			assert.False(t, status.GoodToGo)
+			assert.Contains(t, status.Message, "Status: 503")
+		})
 	}
+}
+
+func getMockedServer(docStoreAPIStatus, pubAnnAPIStatus, kafkaProxyStatus int) *httptest.Server {
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+	mux.HandleFunc(DocStoreAPIPath+GTGEndpoint, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(docStoreAPIStatus)
+	})
+	mux.HandleFunc(PublicAnnotationsAPIPath+GTGEndpoint, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(pubAnnAPIStatus)
+	})
+	mux.HandleFunc(KafkaRestProxyEndpoint, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(kafkaProxyStatus)
+	})
+	return server
 }
 
 type dummyClient struct {

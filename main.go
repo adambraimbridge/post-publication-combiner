@@ -185,8 +185,8 @@ func main() {
 		msgProcessor := processor.NewMsgProcessor(
 			pQConf,
 			messagesCh,
-			utils.ApiURL{*docStoreAPIBaseURL, *docStoreAPIEndpoint},
-			utils.ApiURL{*publicAnnotationsAPIBaseURL, *publicAnnotationsAPIEndpoint},
+			utils.ApiURL{BaseURL: *docStoreAPIBaseURL, Endpoint: *docStoreAPIEndpoint},
+			utils.ApiURL{BaseURL: *publicAnnotationsAPIBaseURL, Endpoint: *publicAnnotationsAPIEndpoint},
 			&client,
 			processorConf)
 		go msgProcessor.ProcessMessages()
@@ -212,9 +212,7 @@ func routeRequests(port *string, requestHandler *requestHandler, healthService *
 	r.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.gtgCheck))
 
 	checks := []health.Check{
-		checkPostMetadataPublicationFoundHealthcheck(healthService),
-		checkPostContentPublicationTopicIsFoundHealthcheck(healthService),
-		checkCombinedPublicationTopicTopicIsFoundHealthcheck(healthService),
+		checkKafkaProxyConnectivity(healthService),
 		checkDocumentStoreAPIHealthcheck(healthService),
 		checkPublicAnnotationsAPIHealthcheck(healthService),
 	}

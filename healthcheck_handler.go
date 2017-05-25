@@ -1,17 +1,16 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/Financial-Times/service-status-go/gtg"
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 const (
-	GTGEndpoint = "/__gtg"
-	ResponseOK  = "OK"
+	GTGEndpoint            = "/__gtg"
+	ResponseOK             = "OK"
+	KafkaRestProxyEndpoint = "/__kafka-rest-proxy/topics"
 )
 
 type HealthcheckHandler struct {
@@ -38,36 +37,14 @@ func NewCombinerHealthcheck(proxyAddress string, proxyHeader string, client util
 	}
 }
 
-func checkPostMetadataPublicationFoundHealthcheck(h *HealthcheckHandler) health.Check {
+func checkKafkaProxyConnectivity(h *HealthcheckHandler) health.Check {
 	return health.Check{
-		BusinessImpact:   "Metadata messages don't get processed. Content might not get indexed for search.",
-		Name:             fmt.Sprintf("Check kafka-proxy connectivity and %s topic", h.metadataTopic),
+		BusinessImpact:   "Can't process PostPublicationEvents and PostMetadataPublicationEvents messages, can't write CombinedPostPublicationEvents messages to queue. Indexing for search won't work.",
+		Name:             "Check connectivity to the kafka-proxy",
 		PanicGuide:       "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/post-publication-combiner",
 		Severity:         1,
-		TechnicalSummary: "Metadata messages are not received from the queue. Check if kafka-proxy is reachable and topic is present.",
-		Checker:          h.checkIfPostMetadataPublicationTopicIsPresent,
-	}
-}
-
-func checkPostContentPublicationTopicIsFoundHealthcheck(h *HealthcheckHandler) health.Check {
-	return health.Check{
-		BusinessImpact:   "Content messages don't get processed. Content might not get indexed for search.",
-		Name:             fmt.Sprintf("Check kafka-proxy connectivity and %s topic", h.contentTopic),
-		PanicGuide:       "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/post-publication-combiner",
-		Severity:         1,
-		TechnicalSummary: "Content messages are not received from the queue. Check if kafka-proxy is reachable and topic is present.",
-		Checker:          h.checkIfPostContentPublicationTopicIsPresent,
-	}
-}
-
-func checkCombinedPublicationTopicTopicIsFoundHealthcheck(h *HealthcheckHandler) health.Check {
-	return health.Check{
-		BusinessImpact:   "CombinedPostPublication messages can't be written in the queue. Indexing for search won't work.",
-		Name:             fmt.Sprintf("Check kafka-proxy connectivity and %s topic", h.combinedTopic),
-		PanicGuide:       "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/post-publication-combiner",
-		Severity:         1,
-		TechnicalSummary: "Messages couldn't be forwarded to the queue. Check if kafka-proxy is reachable and topic is present.",
-		Checker:          h.checkIfCombinedPublicationTopicIsPresent,
+		TechnicalSummary: "PostPublicationEvents and PostMetadataPublicationEvents messages are not received from the queue, CombinedPostPublicationEvents messages can't be forwarded to the queue. Check if kafka-proxy is reachable.",
+		Checker:          h.checkIfKafkaProxyIsReachable,
 	}
 }
 
@@ -94,13 +71,7 @@ func checkPublicAnnotationsAPIHealthcheck(h *HealthcheckHandler) health.Check {
 }
 
 func (h *HealthcheckHandler) gtgCheck() gtg.Status {
-	if _, err := h.checkIfPostContentPublicationTopicIsPresent(); err != nil {
-		return gtg.Status{GoodToGo: false, Message: err.Error()}
-	}
-	if _, err := h.checkIfPostMetadataPublicationTopicIsPresent(); err != nil {
-		return gtg.Status{GoodToGo: false, Message: err.Error()}
-	}
-	if _, err := h.checkIfCombinedPublicationTopicIsPresent(); err != nil {
+	if _, err := h.checkIfKafkaProxyIsReachable(); err != nil {
 		return gtg.Status{GoodToGo: false, Message: err.Error()}
 	}
 	if _, err := h.checkIfDocumentStoreIsReachable(); err != nil {
@@ -113,57 +84,31 @@ func (h *HealthcheckHandler) gtgCheck() gtg.Status {
 	return gtg.Status{GoodToGo: true}
 }
 
-func (h *HealthcheckHandler) checkIfPostMetadataPublicationTopicIsPresent() (string, error) {
-	return ResponseOK, checkIfTopicIsPresent(h, h.metadataTopic)
-}
+func (h *HealthcheckHandler) checkIfKafkaProxyIsReachable() (string, error) {
+	urlStr := h.proxyAddress + KafkaRestProxyEndpoint
 
-func (h *HealthcheckHandler) checkIfPostContentPublicationTopicIsPresent() (string, error) {
-	return ResponseOK, checkIfTopicIsPresent(h, h.contentTopic)
-}
-
-func (h *HealthcheckHandler) checkIfCombinedPublicationTopicIsPresent() (string, error) {
-	return ResponseOK, checkIfTopicIsPresent(h, h.combinedTopic)
+	_, _, err := utils.ExecuteSimpleHTTPRequest(urlStr, h.httpClient)
+	if err != nil {
+		log.Errorf("Healthcheck: %v", err.Error())
+		return "", err
+	}
+	return ResponseOK, nil
 }
 
 func (h *HealthcheckHandler) checkIfDocumentStoreIsReachable() (string, error) {
 	_, _, err := utils.ExecuteSimpleHTTPRequest(h.docStoreAPIBaseURL+GTGEndpoint, h.httpClient)
 	if err != nil {
-		logrus.Errorf("Healthcheck: %v", err.Error())
+		log.Errorf("Healthcheck: %v", err.Error())
+		return "", err
 	}
-	return ResponseOK, err
+	return ResponseOK, nil
 }
 
 func (h *HealthcheckHandler) checkIfPublicAnnotationsAPIIsReachable() (string, error) {
 	_, _, err := utils.ExecuteSimpleHTTPRequest(h.publicAnnotationsAPIBaseURL+GTGEndpoint, h.httpClient)
 	if err != nil {
-		logrus.Errorf("Healthcheck: %v", err.Error())
+		log.Errorf("Healthcheck: %v", err.Error())
+		return "", err
 	}
-	return ResponseOK, err
-}
-
-func checkIfTopicIsPresent(h *HealthcheckHandler, searchedTopic string) error {
-
-	urlStr := h.proxyAddress + "/__kafka-rest-proxy/topics"
-
-	body, _, err := utils.ExecuteSimpleHTTPRequest(urlStr, h.httpClient)
-	if err != nil {
-		logrus.Errorf("Healthcheck: %v", err.Error())
-		return err
-	}
-
-	var topics []string
-
-	err = json.Unmarshal(body, &topics)
-	if err != nil {
-		logrus.Errorf("Connection could be established to kafka-proxy, but a parsing error occurred and topic could not be found. %v", err.Error())
-		return err
-	}
-
-	for _, topic := range topics {
-		if topic == searchedTopic {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("Connection could be established to kafka-proxy, but topic %s was not found", searchedTopic)
+	return ResponseOK, nil
 }

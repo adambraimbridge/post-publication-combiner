@@ -89,9 +89,7 @@ Our standard admin endpoints are:
 `/__health`
 
 Checks if:
-* kafka-proxy is reachable and PostMetadataPublicationEvents topic is present
-* kafka-proxy is reachable and PostPublicationEvents topic is present
-* kafka-proxy is reachable and CombinedPostPublicationEvents topic is present
+* kafka-proxy is reachable
 * document-store-api is reachable
 * public-annotations-api is reachable
 
