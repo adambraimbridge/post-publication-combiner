@@ -67,20 +67,19 @@ Test:
 ## Service/Utility endpoints
 <a name="force">Force endpoint</a>
 
-`/{content-type}/{uuid}`
+`/{uuid}`
 ###POST
 Creates and forwards a CombinedPostPublicationEvent to the queue for the provided UUID.
 
-Supported content types: `article`, `video`
 Request body should be empty.
 
 Returns 200 if the message was published successfully
 
-Returns 422 (Unprocessable Entity) for unrecognized content-type or an invalid uuid
+Returns 422 (Unprocessable Entity) for an invalid uuid
 
 Returns 404 for missing content and metadata for the provided uuid
 
-Returns 500 for other processing errors
+Returns 500 for unexpected processing errors
 
 ## Healthchecks
 Our standard admin endpoints are:

@@ -9,13 +9,8 @@ import (
 )
 
 const (
-	idpathVar          = "id"
-	contentTypePathVar = "content-type"
-	contentTypeArticle = "article"
-	contentTypeVideo   = "video"
+	idpathVar = "id"
 )
-
-var contentTypes = []string{contentTypeArticle, contentTypeVideo}
 
 type requestHandler struct {
 	processor processor.Processor
@@ -23,15 +18,8 @@ type requestHandler struct {
 
 func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *http.Request) {
 	uuid := mux.Vars(request)[idpathVar]
-	contentType := mux.Vars(request)[contentTypePathVar]
 
 	defer request.Body.Close()
-
-	if !isValidContentType(contentType) {
-		logrus.Errorf("Invalid content type %s", contentType)
-		writer.WriteHeader(http.StatusBadRequest)
-		return
-	}
 
 	if !isValidUUID(uuid) {
 		logrus.Errorf("Invalid UUID %s", uuid)
@@ -40,13 +28,7 @@ func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *
 
 	}
 
-	platform := processor.PlatformV1
-
-	if contentType == contentTypeVideo {
-		platform = processor.PlatformVideo
-	}
-
-	err := handler.processor.ForceMessagePublish(uuid, platform)
+	err := handler.processor.ForceMessagePublish(uuid)
 	switch err {
 	case nil:
 		writer.WriteHeader(http.StatusOK)
@@ -58,15 +40,6 @@ func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *
 		writer.WriteHeader(http.StatusInternalServerError)
 	}
 
-}
-
-func isValidContentType(contentType string) bool {
-	for _, ct := range contentTypes {
-		if contentType == ct {
-			return true
-		}
-	}
-	return false
 }
 
 func isValidUUID(id string) bool {

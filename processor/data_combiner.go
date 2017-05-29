@@ -13,7 +13,7 @@ import (
 type DataCombinerI interface {
 	GetCombinedModelForContent(content model.ContentModel, platformVersion string) (model.CombinedModel, error)
 	GetCombinedModelForAnnotations(metadata model.Annotations, platformVersion string) (model.CombinedModel, error)
-	GetCombinedModel(uuid string, platformVersion string) (model.CombinedModel, error)
+	GetCombinedModel(uuid string) (model.CombinedModel, error)
 }
 
 type DataCombiner struct {
@@ -58,10 +58,10 @@ func (dc DataCombiner) GetCombinedModelForAnnotations(metadata model.Annotations
 		return model.CombinedModel{}, errors.New("Annotations have no UUID referenced. Can't deduce content for it.")
 	}
 
-	return dc.GetCombinedModel(metadata.UUID, platformVersion)
+	return dc.GetCombinedModel(metadata.UUID)
 }
 
-func (dc DataCombiner) GetCombinedModel(uuid string, platformVersion string) (model.CombinedModel, error) {
+func (dc DataCombiner) GetCombinedModel(uuid string) (model.CombinedModel, error) {
 	type annResponse struct {
 		ann []model.Annotation
 		err error
@@ -71,33 +71,32 @@ func (dc DataCombiner) GetCombinedModel(uuid string, platformVersion string) (mo
 		err error
 	}
 
-	cCh := make(chan cResponse)
-	aCh := make(chan annResponse)
-
-	go func() {
-		d, err := dc.MetadataRetriever.getAnnotations(uuid, platformVersion)
-		aCh <- annResponse{d, err}
-	}()
-
-	go func() {
-		d, err := dc.ContentRetriever.getContent(uuid)
-		cCh <- cResponse{d, err}
-	}()
-
-	a := <-aCh
-	if a.err != nil {
-		return model.CombinedModel{}, a.err
+	content, err := dc.ContentRetriever.getContent(uuid)
+	if err != nil {
+		return model.CombinedModel{}, err
 	}
 
-	c := <-cCh
-	if c.err != nil {
-		return model.CombinedModel{}, c.err
+	platform := PlatformV1
+
+	if content.Type == contentTypeVideo {
+		platform = PlatformVideo
+	}
+
+	for _, identifier := range content.Identifiers {
+		if strings.HasPrefix(identifier.Authority, videoAuthority) {
+			platform = PlatformVideo
+		}
+	}
+
+	annotations, err := dc.MetadataRetriever.getAnnotations(uuid, platform)
+	if err != nil {
+		return model.CombinedModel{}, err
 	}
 
 	return model.CombinedModel{
 		UUID:     uuid,
-		Content:  c.c,
-		Metadata: a.ann,
+		Content:  content,
+		Metadata: annotations,
 	}, nil
 }
 

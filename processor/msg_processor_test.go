@@ -375,7 +375,7 @@ func TestForceMessage(t *testing.T) {
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
-	err := p.ForceMessagePublish(combiner.data.UUID, "v1")
+	err := p.ForceMessagePublish(combiner.data.UUID)
 	assert.NoError(t, err)
 
 	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
@@ -394,7 +394,7 @@ func TestForceMessageCombinerError(t *testing.T) {
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
-	err := p.ForceMessagePublish(combiner.data.UUID, "v1")
+	err := p.ForceMessagePublish(combiner.data.UUID)
 	assert.Equal(t, combiner.err, err)
 
 	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
@@ -414,7 +414,7 @@ func TestForceMessageNotFoundError(t *testing.T) {
 	assert.Equal(t, 0, len(hook.Entries))
 
 	uuid := "80fb3e57-8d3b-4f07-bbb6-8788452d63cb"
-	err := p.ForceMessagePublish(uuid, "v1")
+	err := p.ForceMessagePublish(uuid)
 	assert.Equal(t, NotFoundError, err)
 
 	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
@@ -461,7 +461,7 @@ func TestForceMessageFilteredError(t *testing.T) {
 	assert.Equal(t, 0, len(hook.Entries))
 
 	uuid := "80fb3e57-8d3b-4f07-bbb6-8788452d63cb"
-	err := p.ForceMessagePublish(uuid, "v1")
+	err := p.ForceMessagePublish(uuid)
 	assert.Equal(t, InvalidContentTypeError, err)
 
 	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
@@ -510,7 +510,7 @@ func TestForceMessageProducerError(t *testing.T) {
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
-	err := p.ForceMessagePublish(combiner.data.UUID, "v1")
+	err := p.ForceMessagePublish(combiner.data.UUID)
 	assert.Equal(t, producer.expError, err)
 
 	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
@@ -704,6 +704,6 @@ func (c DummyDataCombiner) GetCombinedModelForAnnotations(metadata model.Annotat
 	return c.data, c.err
 }
 
-func (c DummyDataCombiner) GetCombinedModel(uuid string, platformVersion string) (model.CombinedModel, error) {
+func (c DummyDataCombiner) GetCombinedModel(uuid string) (model.CombinedModel, error) {
 	return c.data, c.err
 }
