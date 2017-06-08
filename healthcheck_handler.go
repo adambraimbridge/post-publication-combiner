@@ -2,36 +2,30 @@ package main
 
 import (
 	health "github.com/Financial-Times/go-fthealth/v1_1"
-	"github.com/Financial-Times/post-publication-combiner/utils"
+	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/service-status-go/gtg"
 	log "github.com/Sirupsen/logrus"
+
+	"github.com/Financial-Times/post-publication-combiner/utils"
 )
 
 const (
-	GTGEndpoint            = "/__gtg"
-	ResponseOK             = "OK"
-	KafkaRestProxyEndpoint = "/__kafka-rest-proxy/topics"
+	GTGEndpoint = "/__gtg"
+	ResponseOK  = "OK"
 )
 
 type HealthcheckHandler struct {
 	httpClient                  utils.Client
-	proxyAddress                string
-	proxyRequestHeader          string
-	metadataTopic               string
-	contentTopic                string
-	combinedTopic               string
+	producerInstance            producer.MessageProducer
 	docStoreAPIBaseURL          string
 	publicAnnotationsAPIBaseURL string
 }
 
-func NewCombinerHealthcheck(proxyAddress string, proxyHeader string, client utils.Client, metadataTopic string, contentTopic string, combinedTopic string, docStoreAPIURL string, publicAnnotationsAPIURL string) *HealthcheckHandler {
+func NewCombinerHealthcheck(config *producer.MessageProducerConfig, client utils.Client, docStoreAPIURL string, publicAnnotationsAPIURL string) *HealthcheckHandler {
+	producerInstance := producer.NewMessageProducer(*config)
 	return &HealthcheckHandler{
 		httpClient:                  client,
-		proxyAddress:                proxyAddress,
-		proxyRequestHeader:          proxyHeader,
-		metadataTopic:               metadataTopic,
-		contentTopic:                contentTopic,
-		combinedTopic:               combinedTopic,
+		producerInstance:            producerInstance,
 		docStoreAPIBaseURL:          docStoreAPIURL,
 		publicAnnotationsAPIBaseURL: publicAnnotationsAPIURL,
 	}
@@ -44,7 +38,7 @@ func checkKafkaProxyConnectivity(h *HealthcheckHandler) health.Check {
 		PanicGuide:       "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/post-publication-combiner",
 		Severity:         1,
 		TechnicalSummary: "PostPublicationEvents and PostMetadataPublicationEvents messages are not received from the queue, CombinedPostPublicationEvents messages can't be forwarded to the queue. Check if kafka-proxy is reachable.",
-		Checker:          h.checkIfKafkaProxyIsReachable,
+		Checker:          h.producerInstance.ConnectivityCheck,
 	}
 }
 
@@ -71,7 +65,7 @@ func checkPublicAnnotationsAPIHealthcheck(h *HealthcheckHandler) health.Check {
 }
 
 func (h *HealthcheckHandler) gtgCheck() gtg.Status {
-	if _, err := h.checkIfKafkaProxyIsReachable(); err != nil {
+	if _, err := h.producerInstance.ConnectivityCheck(); err != nil {
 		return gtg.Status{GoodToGo: false, Message: err.Error()}
 	}
 	if _, err := h.checkIfDocumentStoreIsReachable(); err != nil {
@@ -82,17 +76,6 @@ func (h *HealthcheckHandler) gtgCheck() gtg.Status {
 	}
 
 	return gtg.Status{GoodToGo: true}
-}
-
-func (h *HealthcheckHandler) checkIfKafkaProxyIsReachable() (string, error) {
-	urlStr := h.proxyAddress + KafkaRestProxyEndpoint
-
-	_, _, err := utils.ExecuteSimpleHTTPRequest(urlStr, h.httpClient)
-	if err != nil {
-		log.Errorf("Healthcheck: %v", err.Error())
-		return "", err
-	}
-	return ResponseOK, nil
 }
 
 func (h *HealthcheckHandler) checkIfDocumentStoreIsReachable() (string, error) {

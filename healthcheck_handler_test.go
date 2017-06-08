@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -77,44 +78,14 @@ func TestCheckIfPublicAnnotationsApiIsReachable_Succeeds(t *testing.T) {
 	assert.Equal(t, ResponseOK, resp)
 }
 
-func TestCheckIfKafkaProxyIsReachable_Succeeds(t *testing.T) {
-	dc := dummyClient{
-		statusCode: http.StatusOK,
-		body:       "all good",
-	}
-	h := HealthcheckHandler{
-		proxyAddress: "kafka-proxy-address",
-		httpClient:   &dc,
-	}
-
-	resp, err := h.checkIfKafkaProxyIsReachable()
-	assert.Nil(t, err)
-	assert.Equal(t, ResponseOK, resp)
-}
-
-func TestCheckIfKafkaProxyIsReachable_Errors(t *testing.T) {
-	expError := errors.New("some error")
-	dc := dummyClient{
-		err: expError,
-	}
-	h := HealthcheckHandler{
-		proxyAddress: "kafka-proxy-address",
-		httpClient:   &dc,
-	}
-
-	resp, err := h.checkIfKafkaProxyIsReachable()
-	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", expError, err))
-	assert.Empty(t, resp)
-}
-
 func TestGtgCheck_Good(t *testing.T) {
 	dc := dummyClient{
 		statusCode: http.StatusOK,
 	}
 	h := HealthcheckHandler{
 		httpClient:                  &dc,
+		producerInstance:            &mockProducerInstance{isConnectionHealthy: true},
 		docStoreAPIBaseURL:          "doc-store-base-url",
-		proxyAddress:                "kafka-proxy-address",
 		publicAnnotationsAPIBaseURL: "pub-ann-base-url",
 	}
 
@@ -126,25 +97,25 @@ func TestGtgCheck_Good(t *testing.T) {
 func TestGtgCheck_Bad(t *testing.T) {
 	testCases := []struct {
 		description       string
-		kafkaProxyStatus  int
+		producerInstance  producer.MessageProducer
 		docStoreAPIStatus int
 		pubAnnAPIStatus   int
 	}{
 		{
 			description:       "KafkaProxy GTG endpoint returns 503",
-			kafkaProxyStatus:  503,
+			producerInstance:  &mockProducerInstance{isConnectionHealthy: false},
 			docStoreAPIStatus: 200,
 			pubAnnAPIStatus:   200,
 		},
 		{
 			description:       "DocumentStoreApi GTG endpoint returns 503",
-			kafkaProxyStatus:  200,
+			producerInstance:  &mockProducerInstance{isConnectionHealthy: true},
 			docStoreAPIStatus: 503,
 			pubAnnAPIStatus:   200,
 		},
 		{
 			description:       "PublicAnnotationsApi GTG endpoint returns 503",
-			kafkaProxyStatus:  200,
+			producerInstance:  &mockProducerInstance{isConnectionHealthy: true},
 			docStoreAPIStatus: 200,
 			pubAnnAPIStatus:   503,
 		},
@@ -152,24 +123,23 @@ func TestGtgCheck_Bad(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			server := getMockedServer(tc.docStoreAPIStatus, tc.pubAnnAPIStatus, tc.kafkaProxyStatus)
+			server := getMockedServer(tc.docStoreAPIStatus, tc.pubAnnAPIStatus)
 			defer server.Close()
 
 			h := HealthcheckHandler{
 				httpClient:                  http.DefaultClient,
+				producerInstance:            tc.producerInstance,
 				docStoreAPIBaseURL:          server.URL + DocStoreAPIPath,
-				proxyAddress:                server.URL,
 				publicAnnotationsAPIBaseURL: server.URL + PublicAnnotationsAPIPath,
 			}
 
 			status := h.gtgCheck()
 			assert.False(t, status.GoodToGo)
-			assert.Contains(t, status.Message, "Status: 503")
 		})
 	}
 }
 
-func getMockedServer(docStoreAPIStatus, pubAnnAPIStatus, kafkaProxyStatus int) *httptest.Server {
+func getMockedServer(docStoreAPIStatus, pubAnnAPIStatus int) *httptest.Server {
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	mux.HandleFunc(DocStoreAPIPath+GTGEndpoint, func(w http.ResponseWriter, r *http.Request) {
@@ -177,9 +147,6 @@ func getMockedServer(docStoreAPIStatus, pubAnnAPIStatus, kafkaProxyStatus int) *
 	})
 	mux.HandleFunc(PublicAnnotationsAPIPath+GTGEndpoint, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(pubAnnAPIStatus)
-	})
-	mux.HandleFunc(KafkaRestProxyEndpoint, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(kafkaProxyStatus)
 	})
 	return server
 }
@@ -196,4 +163,20 @@ func (c dummyClient) Do(req *http.Request) (*http.Response, error) {
 		Body:       ioutil.NopCloser(strings.NewReader(c.body)),
 	}
 	return resp, c.err
+}
+
+type mockProducerInstance struct {
+	isConnectionHealthy bool
+}
+
+func (p *mockProducerInstance) SendMessage(string, producer.Message) error {
+	return nil
+}
+
+func (p *mockProducerInstance) ConnectivityCheck() (string, error) {
+	if p.isConnectionHealthy {
+		return "", nil
+	}
+
+	return "Error connecting to producer", errors.New("test")
 }

@@ -191,7 +191,7 @@ func main() {
 			processorConf)
 		go msgProcessor.ProcessMessages()
 
-		routeRequests(port, &requestHandler{processor: msgProcessor}, NewCombinerHealthcheck(*kafkaProxyAddress, *kafkaProxyRoutingHeader, &client, *contentTopic, *metadataTopic, *combinedTopic, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
+		routeRequests(port, &requestHandler{processor: msgProcessor}, NewCombinerHealthcheck(&pQConf, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
 	}
 
 	logrus.SetLevel(logrus.InfoLevel)
