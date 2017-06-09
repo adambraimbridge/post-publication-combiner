@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/Financial-Times/message-queue-go-producer/producer"
+	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -78,44 +79,56 @@ func TestCheckIfPublicAnnotationsApiIsReachable_Succeeds(t *testing.T) {
 	assert.Equal(t, ResponseOK, resp)
 }
 
-func TestGtgCheck_Good(t *testing.T) {
+func TestGTG_Good(t *testing.T) {
 	dc := dummyClient{
 		statusCode: http.StatusOK,
 	}
 	h := HealthcheckHandler{
 		httpClient:                  &dc,
-		producerInstance:            &mockProducerInstance{isConnectionHealthy: true},
+		producer:                    &mockProducer{isConnectionHealthy: true},
+		consumer:                    &mockConsumer{isConnectionHealthy: true},
 		docStoreAPIBaseURL:          "doc-store-base-url",
 		publicAnnotationsAPIBaseURL: "pub-ann-base-url",
 	}
 
-	status := h.gtgCheck()
+	status := h.GTG()
 	assert.True(t, status.GoodToGo)
 	assert.Empty(t, status.Message)
 }
 
-func TestGtgCheck_Bad(t *testing.T) {
+func TestGTG_Bad(t *testing.T) {
 	testCases := []struct {
 		description       string
-		producerInstance  producer.MessageProducer
+		producer          producer.MessageProducer
+		consumer          consumer.MessageConsumer
 		docStoreAPIStatus int
 		pubAnnAPIStatus   int
 	}{
 		{
-			description:       "KafkaProxy GTG endpoint returns 503",
-			producerInstance:  &mockProducerInstance{isConnectionHealthy: false},
+			description:       "Producer KafkaProxy GTG endpoint returns 503",
+			producer:          &mockProducer{isConnectionHealthy: false},
+			consumer:          &mockConsumer{isConnectionHealthy: true},
+			docStoreAPIStatus: 200,
+			pubAnnAPIStatus:   200,
+		},
+		{
+			description:       "Consumer KafkaProxy GTG endpoint returns 503",
+			producer:          &mockProducer{isConnectionHealthy: true},
+			consumer:          &mockConsumer{isConnectionHealthy: false},
 			docStoreAPIStatus: 200,
 			pubAnnAPIStatus:   200,
 		},
 		{
 			description:       "DocumentStoreApi GTG endpoint returns 503",
-			producerInstance:  &mockProducerInstance{isConnectionHealthy: true},
+			producer:          &mockProducer{isConnectionHealthy: true},
+			consumer:          &mockConsumer{isConnectionHealthy: true},
 			docStoreAPIStatus: 503,
 			pubAnnAPIStatus:   200,
 		},
 		{
 			description:       "PublicAnnotationsApi GTG endpoint returns 503",
-			producerInstance:  &mockProducerInstance{isConnectionHealthy: true},
+			producer:          &mockProducer{isConnectionHealthy: true},
+			consumer:          &mockConsumer{isConnectionHealthy: true},
 			docStoreAPIStatus: 200,
 			pubAnnAPIStatus:   503,
 		},
@@ -128,12 +141,13 @@ func TestGtgCheck_Bad(t *testing.T) {
 
 			h := HealthcheckHandler{
 				httpClient:                  http.DefaultClient,
-				producerInstance:            tc.producerInstance,
+				producer:                    tc.producer,
+				consumer:                    tc.consumer,
 				docStoreAPIBaseURL:          server.URL + DocStoreAPIPath,
 				publicAnnotationsAPIBaseURL: server.URL + PublicAnnotationsAPIPath,
 			}
 
-			status := h.gtgCheck()
+			status := h.GTG()
 			assert.False(t, status.GoodToGo)
 		})
 	}
@@ -165,18 +179,36 @@ func (c dummyClient) Do(req *http.Request) (*http.Response, error) {
 	return resp, c.err
 }
 
-type mockProducerInstance struct {
+type mockProducer struct {
 	isConnectionHealthy bool
 }
 
-func (p *mockProducerInstance) SendMessage(string, producer.Message) error {
+func (p *mockProducer) SendMessage(string, producer.Message) error {
 	return nil
 }
 
-func (p *mockProducerInstance) ConnectivityCheck() (string, error) {
+func (p *mockProducer) ConnectivityCheck() (string, error) {
 	if p.isConnectionHealthy {
 		return "", nil
 	}
 
-	return "Error connecting to producer", errors.New("test")
+	return "", errors.New("Error connecting to the queue")
+}
+
+type mockConsumer struct {
+	isConnectionHealthy bool
+}
+
+func (p *mockConsumer) Start() {
+}
+
+func (p *mockConsumer) Stop() {
+}
+
+func (p *mockConsumer) ConnectivityCheck() (string, error) {
+	if p.isConnectionHealthy {
+		return "", nil
+	}
+
+	return "", errors.New("Error connecting to the queue")
 }

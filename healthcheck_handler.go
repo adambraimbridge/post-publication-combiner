@@ -1,8 +1,11 @@
 package main
 
 import (
+	"net/http"
+
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
+	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/service-status-go/gtg"
 	log "github.com/Sirupsen/logrus"
 
@@ -16,29 +19,43 @@ const (
 
 type HealthcheckHandler struct {
 	httpClient                  utils.Client
-	producerInstance            producer.MessageProducer
+	producer                    producer.MessageProducer
+	consumer                    consumer.MessageConsumer
 	docStoreAPIBaseURL          string
 	publicAnnotationsAPIBaseURL string
 }
 
-func NewCombinerHealthcheck(config *producer.MessageProducerConfig, client utils.Client, docStoreAPIURL string, publicAnnotationsAPIURL string) *HealthcheckHandler {
-	producerInstance := producer.NewMessageProducer(*config)
+func NewCombinerHealthcheck(producerConf *producer.MessageProducerConfig, consumerConf *consumer.QueueConfig, client *http.Client, docStoreAPIURL string, publicAnnotationsAPIURL string) *HealthcheckHandler {
+	p := producer.NewMessageProducerWithHTTPClient(*producerConf, client)
+	c := consumer.NewConsumer(*consumerConf, func(m consumer.Message) {}, client)
 	return &HealthcheckHandler{
 		httpClient:                  client,
-		producerInstance:            producerInstance,
+		producer:                    p,
+		consumer:                    c,
 		docStoreAPIBaseURL:          docStoreAPIURL,
 		publicAnnotationsAPIBaseURL: publicAnnotationsAPIURL,
 	}
 }
 
-func checkKafkaProxyConnectivity(h *HealthcheckHandler) health.Check {
+func checkKafkaProxyProducerConnectivity(h *HealthcheckHandler) health.Check {
 	return health.Check{
-		BusinessImpact:   "Can't process PostPublicationEvents and PostMetadataPublicationEvents messages, can't write CombinedPostPublicationEvents messages to queue. Indexing for search won't work.",
+		BusinessImpact:   "Can't write CombinedPostPublicationEvents messages to queue. Indexing for search won't work.",
 		Name:             "Check connectivity to the kafka-proxy",
 		PanicGuide:       "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/post-publication-combiner",
 		Severity:         1,
-		TechnicalSummary: "PostPublicationEvents and PostMetadataPublicationEvents messages are not received from the queue, CombinedPostPublicationEvents messages can't be forwarded to the queue. Check if kafka-proxy is reachable.",
-		Checker:          h.producerInstance.ConnectivityCheck,
+		TechnicalSummary: "CombinedPostPublicationEvents messages can't be forwarded to the queue. Check if kafka-proxy is reachable.",
+		Checker:          h.producer.ConnectivityCheck,
+	}
+}
+
+func checkKafkaProxyConsumerConnectivity(h *HealthcheckHandler) health.Check {
+	return health.Check{
+		BusinessImpact:   "Can't process PostPublicationEvents and PostMetadataPublicationEvents messages. Indexing for search won't work.",
+		Name:             "Check connectivity to the kafka-proxy",
+		PanicGuide:       "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/post-publication-combiner",
+		Severity:         1,
+		TechnicalSummary: "PostPublicationEvents and PostMetadataPublicationEvents messages are not received from the queue. Check if kafka-proxy is reachable.",
+		Checker:          h.consumer.ConnectivityCheck,
 	}
 }
 
@@ -64,17 +81,32 @@ func checkPublicAnnotationsAPIHealthcheck(h *HealthcheckHandler) health.Check {
 	}
 }
 
-func (h *HealthcheckHandler) gtgCheck() gtg.Status {
-	if _, err := h.producerInstance.ConnectivityCheck(); err != nil {
-		return gtg.Status{GoodToGo: false, Message: err.Error()}
+func (h *HealthcheckHandler) GTG() gtg.Status {
+	consumerCheck := func() gtg.Status {
+		return gtgCheck(h.consumer.ConnectivityCheck)
 	}
-	if _, err := h.checkIfDocumentStoreIsReachable(); err != nil {
-		return gtg.Status{GoodToGo: false, Message: err.Error()}
+	producerCheck := func() gtg.Status {
+		return gtgCheck(h.producer.ConnectivityCheck)
 	}
-	if _, err := h.checkIfPublicAnnotationsAPIIsReachable(); err != nil {
-		return gtg.Status{GoodToGo: false, Message: err.Error()}
+	docStoreCheck := func() gtg.Status {
+		return gtgCheck(h.checkIfDocumentStoreIsReachable)
+	}
+	pubAnnApiCheck := func() gtg.Status {
+		return gtgCheck(h.checkIfPublicAnnotationsAPIIsReachable)
 	}
 
+	return gtg.FailFastParallelCheck([]gtg.StatusChecker{
+		consumerCheck,
+		producerCheck,
+		docStoreCheck,
+		pubAnnApiCheck,
+	})()
+}
+
+func gtgCheck(handler func() (string, error)) gtg.Status {
+	if _, err := handler(); err != nil {
+		return gtg.Status{GoodToGo: false, Message: err.Error()}
+	}
 	return gtg.Status{GoodToGo: true}
 }
 
