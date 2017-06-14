@@ -67,12 +67,13 @@ Test:
 ## Service/Utility endpoints
 <a name="force">Force endpoint</a>
 
-`/{content-type}/{uuid}`
+`/{uuid}`
 ###POST
 Creates and forwards a CombinedPostPublicationEvent to the queue for the provided UUID.
+Request body should be empty. 
+The combiner reads the content with that UUID from document-store, and based on its content type, it complements the message with the corresponding annotations.
 
-Supported content types: `article`, `video`
-Request body should be empty.
+If the force request has the `X-Request-Id` header set, that value will be propagated to the queue - as a message header.
 
 Returns 200 if the message was published successfully
 
