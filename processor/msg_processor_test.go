@@ -330,7 +330,61 @@ func TestProcessMetadataMsg_Successfully_Forwarded(t *testing.T) {
 	assert.Equal(t, 1, len(hook.Entries))
 }
 
-func TestForceMessage(t *testing.T) {
+func TestForceMessageWithTID(t *testing.T) {
+
+	allowedOrigins := []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"}
+	allowedContentTypes := []string{"Article", "Video"}
+	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins, SupportedContentTypes: allowedContentTypes}
+
+	combiner := DummyDataCombiner{
+		data: model.CombinedModel{
+			UUID:    "some_uuid",
+			Content: model.ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
+			Metadata: []model.Annotation{
+				{
+					Thing: model.Thing{
+						ID:        "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
+						PrefLabel: "Barclays",
+						Types: []string{"http://base-url/core/Thing",
+							"http://base-url/concept/Concept",
+							"http://base-url/organisation/Organisation",
+							"http://base-url/company/Company",
+							"http://base-url/company/PublicCompany",
+						},
+						Predicate: "http://base-url/about",
+						ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
+						LeiCode:   "leicode_id_1",
+						FactsetID: "factset-id1",
+						TmeIDs:    []string{"tme_id1"},
+						UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
+							"factset-generated-uuid"},
+						PlatformVersion: "v1",
+					},
+				},
+			},
+		}}
+	tid := "transaction_id_1"
+	expMsg := producer.Message{
+		Headers: map[string]string{"Message-Type": "cms-combined-content-published", "X-Request-Id": tid, "Origin-System-Id": "force-publish"},
+		Body:    `{"uuid":"some_uuid","content":{"uuid":"some_uuid","title":"simple title","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","leiCode":"leicode_id_1","factsetID":"factset-id1","tmeIDs":["tme_id1"],"uuids":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"platformVersion":"v1"}}]}`,
+	}
+
+	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expTID: tid, expMsg: expMsg}
+	p := &MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
+
+	hook := testLogger.NewGlobal()
+	assert.Nil(t, hook.LastEntry())
+	assert.Equal(t, 0, len(hook.Entries))
+
+	err := p.ForceMessagePublish(combiner.data.UUID, tid, "v1")
+	assert.NoError(t, err)
+
+	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
+	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Mapped and sent for uuid: %v", expMsg.Headers["X-Request-Id"], combiner.data.UUID))
+	assert.Equal(t, 1, len(hook.Entries))
+}
+
+func TestForceMessageWithoutTID(t *testing.T) {
 
 	allowedOrigins := []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"}
 	allowedContentTypes := []string{"Article", "Video"}
@@ -375,7 +429,7 @@ func TestForceMessage(t *testing.T) {
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
-	err := p.ForceMessagePublish(combiner.data.UUID, "v1")
+	err := p.ForceMessagePublish(combiner.data.UUID, "", "v1")
 	assert.NoError(t, err)
 
 	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
@@ -394,7 +448,7 @@ func TestForceMessageCombinerError(t *testing.T) {
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
-	err := p.ForceMessagePublish(combiner.data.UUID, "v1")
+	err := p.ForceMessagePublish(combiner.data.UUID, "", "v1")
 	assert.Equal(t, combiner.err, err)
 
 	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
@@ -414,7 +468,7 @@ func TestForceMessageNotFoundError(t *testing.T) {
 	assert.Equal(t, 0, len(hook.Entries))
 
 	uuid := "80fb3e57-8d3b-4f07-bbb6-8788452d63cb"
-	err := p.ForceMessagePublish(uuid, "v1")
+	err := p.ForceMessagePublish(uuid, "", "v1")
 	assert.Equal(t, NotFoundError, err)
 
 	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
@@ -461,7 +515,7 @@ func TestForceMessageFilteredError(t *testing.T) {
 	assert.Equal(t, 0, len(hook.Entries))
 
 	uuid := "80fb3e57-8d3b-4f07-bbb6-8788452d63cb"
-	err := p.ForceMessagePublish(uuid, "v1")
+	err := p.ForceMessagePublish(uuid, "", "v1")
 	assert.Equal(t, InvalidContentTypeError, err)
 
 	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
@@ -510,7 +564,7 @@ func TestForceMessageProducerError(t *testing.T) {
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
-	err := p.ForceMessagePublish(combiner.data.UUID, "v1")
+	err := p.ForceMessagePublish(combiner.data.UUID, "", "v1")
 	assert.Equal(t, producer.expError, err)
 
 	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
@@ -668,6 +722,7 @@ func TestGetPlatformVersion(t *testing.T) {
 type DummyMsgProducer struct {
 	t        *testing.T
 	expUUID  string
+	expTID   string
 	expMsg   producer.Message
 	expError error
 }
@@ -682,6 +737,10 @@ func (p DummyMsgProducer) SendMessage(uuid string, m producer.Message) error {
 	if p.expMsg.Headers["X-Request-Id"] == "[ignore]" {
 		p.expMsg.Headers["X-Request-Id"] = m.Headers["X-Request-Id"]
 	}
+	if p.expTID != "" {
+		assert.Equal(p.t, p.expTID, m.Headers["X-Request-Id"])
+	}
+	assert.NotEmpty(p.t, m.Headers["X-Request-Id"])
 	assert.Equal(p.t, p.expMsg, m)
 
 	return nil

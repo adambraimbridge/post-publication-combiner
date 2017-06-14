@@ -24,6 +24,7 @@ type requestHandler struct {
 func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *http.Request) {
 	uuid := mux.Vars(request)[idpathVar]
 	contentType := mux.Vars(request)[contentTypePathVar]
+	transactionID := request.Header.Get("X-Request-Id")
 
 	defer request.Body.Close()
 
@@ -46,7 +47,7 @@ func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *
 		platform = processor.PlatformVideo
 	}
 
-	err := handler.processor.ForceMessagePublish(uuid, platform)
+	err := handler.processor.ForceMessagePublish(uuid, transactionID, platform)
 	switch err {
 	case nil:
 		writer.WriteHeader(http.StatusOK)
