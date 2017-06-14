@@ -15,14 +15,16 @@ func TestPostMessage(t *testing.T) {
 
 	tests := []struct {
 		uuid   string
+		tid    string
 		err    error
 		status int
 	}{
-		{"a78cf3ea-b221-46f8-8cbc-a61e5e454e88", nil, 200},
-		{"invalid", nil, 400},
-		{"a78cf3ea-b221-46f8-8cbc-a61e5e454e88", errors.New("test error"), 500},
-		{"a78cf3ea-b221-46f8-8cbc-a61e5e454e88", processor.NotFoundError, 404},
-		{"a78cf3ea-b221-46f8-8cbc-a61e5e454e88", processor.InvalidContentTypeError, 422},
+		{"a78cf3ea-b221-46f8-8cbc-a61e5e454e88", "tid_1", nil, 200},
+		{"a78cf3ea-b221-46f8-8cbc-a61e5e454e88", "", nil, 200},
+		{"invalid", "tid_1", nil, 400},
+		{"a78cf3ea-b221-46f8-8cbc-a61e5e454e88", "tid_1", errors.New("test error"), 500},
+		{"a78cf3ea-b221-46f8-8cbc-a61e5e454e88", "tid_1", processor.NotFoundError, 404},
+		{"a78cf3ea-b221-46f8-8cbc-a61e5e454e88", "tid_1", processor.InvalidContentTypeError, 422},
 	}
 
 	p := &DummyProcessor{t: t}
@@ -40,8 +42,13 @@ func TestPostMessage(t *testing.T) {
 
 	for _, testCase := range tests {
 		p.uuid = testCase.uuid
+		p.tid = testCase.tid
 		p.err = testCase.err
-		resp, err := http.Post(fmt.Sprintf("%s/%s", server.URL, testCase.uuid), "", nil)
+
+		req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", server.URL, testCase.uuid), nil)
+		req.Header.Add("X-Request-Id", testCase.tid)
+		assert.NoError(t, err)
+		resp, err := http.DefaultClient.Do(req)
 		resp.Body.Close()
 		assert.NoError(t, err)
 		assert.Equal(t, testCase.status, resp.StatusCode)
@@ -51,6 +58,7 @@ func TestPostMessage(t *testing.T) {
 type DummyProcessor struct {
 	t    *testing.T
 	uuid string
+	tid  string
 	err  error
 }
 
@@ -58,7 +66,8 @@ func (p *DummyProcessor) ProcessMessages() {
 	panic("implement me")
 }
 
-func (p *DummyProcessor) ForceMessagePublish(uuid string) error {
+func (p *DummyProcessor) ForceMessagePublish(uuid, tid string) error {
 	assert.Equal(p.t, p.uuid, uuid)
+	assert.Equal(p.t, p.tid, tid)
 	return p.err
 }
