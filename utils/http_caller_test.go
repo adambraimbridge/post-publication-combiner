@@ -46,12 +46,11 @@ func TestExecuteHTTPRequest(t *testing.T) {
 		},
 		{
 			dc: dummyClient{
-				statusCode: http.StatusInternalServerError,
 				err:        errors.New("Some error"),
 			},
 			url:           "url",
 			expRespBody:   nil,
-			expRespStatus: http.StatusInternalServerError,
+			expRespStatus: -1,
 			expErrStr:     "Error executing requests for url=url, error=Some error",
 		},
 		{
