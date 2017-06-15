@@ -46,11 +46,13 @@ func TestPostMessage(t *testing.T) {
 		p.err = testCase.err
 
 		req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", server.URL, testCase.uuid), nil)
+		assert.NoError(t, err)
 		req.Header.Add("X-Request-Id", testCase.tid)
-		assert.NoError(t, err)
+
 		resp, err := http.DefaultClient.Do(req)
-		resp.Body.Close()
 		assert.NoError(t, err)
+		resp.Body.Close()
+
 		assert.Equal(t, testCase.status, resp.StatusCode)
 	}
 }
