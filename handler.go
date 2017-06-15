@@ -18,6 +18,7 @@ type requestHandler struct {
 
 func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *http.Request) {
 	uuid := mux.Vars(request)[idpathVar]
+	transactionID := request.Header.Get("X-Request-Id")
 
 	defer request.Body.Close()
 
@@ -28,7 +29,7 @@ func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *
 
 	}
 
-	err := handler.processor.ForceMessagePublish(uuid)
+	err := handler.processor.ForceMessagePublish(uuid, transactionID)
 	switch err {
 	case nil:
 		writer.WriteHeader(http.StatusOK)

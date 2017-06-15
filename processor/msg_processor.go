@@ -31,7 +31,7 @@ var InvalidContentTypeError = errors.New("Invalid content type")
 
 type Processor interface {
 	ProcessMessages()
-	ForceMessagePublish(uuid string) error
+	ForceMessagePublish(uuid, tid string) error
 }
 
 type MsgProcessor struct {
@@ -92,10 +92,12 @@ func (p *MsgProcessor) ProcessMessages() {
 	}
 }
 
-func (p *MsgProcessor) ForceMessagePublish(uuid string) error {
+func (p *MsgProcessor) ForceMessagePublish(uuid string, tid string) error {
 
-	tid := "tid_force_publish" + uniuri.NewLen(10) + "_post_publication_combiner"
-	logrus.Infof("Generated tid: %d", tid)
+	if tid == "" {
+		tid = "tid_force_publish" + uniuri.NewLen(10) + "_post_publication_combiner"
+		logrus.Infof("Generated tid: %d", tid)
+	}
 
 	h := map[string]string{
 		"X-Request-Id":     tid,
