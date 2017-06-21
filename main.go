@@ -193,7 +193,7 @@ func main() {
 			processorConf)
 		go msgProcessor.ProcessMessages()
 
-		routeRequests(port, &requestHandler{processor: msgProcessor}, NewCombinerHealthcheck(&pQConf, &cConf, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
+		routeRequests(port, &requestHandler{processor: msgProcessor}, NewCombinerHealthcheck(msgProcessor.MsgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
 	}
 
 	logrus.SetLevel(logrus.InfoLevel)

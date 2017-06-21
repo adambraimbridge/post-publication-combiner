@@ -25,9 +25,7 @@ type HealthcheckHandler struct {
 	publicAnnotationsAPIBaseURL string
 }
 
-func NewCombinerHealthcheck(producerConf *producer.MessageProducerConfig, consumerConf *consumer.QueueConfig, client *http.Client, docStoreAPIURL string, publicAnnotationsAPIURL string) *HealthcheckHandler {
-	p := producer.NewMessageProducerWithHTTPClient(*producerConf, client)
-	c := consumer.NewConsumer(*consumerConf, func(m consumer.Message) {}, client)
+func NewCombinerHealthcheck(p producer.MessageProducer, c consumer.MessageConsumer, client *http.Client, docStoreAPIURL string, publicAnnotationsAPIURL string) *HealthcheckHandler {
 	return &HealthcheckHandler{
 		httpClient:                  client,
 		producer:                    p,
