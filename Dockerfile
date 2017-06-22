@@ -28,4 +28,4 @@ RUN apk --no-cache --virtual .build-dependencies add git \
 
 WORKDIR /
 
-CMD [ "post-publication-combiner" ]
+CMD [ "/post-publication-combiner" ]
