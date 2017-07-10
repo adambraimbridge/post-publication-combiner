@@ -1,7 +1,7 @@
 package model
 
 type Annotations struct {
-	Annotations []Annotation `json:"suggestions"`
+	Annotations []Annotation `json:"annotations"`
 	UUID        string       `json:"uuid"`
 }
 
