@@ -39,7 +39,7 @@ func main() {
 	})
 	metadataTopic := app.String(cli.StringOpt{
 		Name:   "metadataTopic",
-		Value:  "PostMetadataPublicationEvents",
+		Value:  "PostConceptAnnotations",
 		EnvVar: "KAFKA_METADATA_TOPIC_NAME",
 	})
 	combinedTopic := app.String(cli.StringOpt{

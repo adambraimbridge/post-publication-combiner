@@ -3,7 +3,7 @@
 [![Circle CI](https://circleci.com/gh/Financial-Times/post-publication-combiner/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/post-publication-combiner/tree/master)[![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/post-publication-combiner)](https://goreportcard.com/report/github.com/Financial-Times/post-publication-combiner) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/post-publication-combiner/badge.svg)](https://coveralls.io/github/Financial-Times/post-publication-combiner)
 
 ## Introduction
-This service builds combined messages (content + v1 annotations) based on events received from PostMetadataPublicationEvents or PostPublicationEvents.  
+This service builds combined messages (content + annotations) based on events received from PostConceptAnnotations or PostPublicationEvents.  
 The combined message is then sent to the CombinedPostPublicationEvents kafka queue.
 
 This is a combination point for synchronizing the content and the metadata publish flows.
@@ -33,25 +33,7 @@ In order to install, execute the following steps:
 
 1. Run the binary (using the `help` flag to see the available optional arguments):
 
-        $GOPATH/bin/post-publication-combiner [--help]
-   
-The available parameters are: 
-* contentTopic
-* metadataTopic
-* combinedTopic
-* kafkaProxyAddress
-* kafkaContentTopicConsumerGroup
-* kafkaMetadataTopicConsumerGroup
-* kafkaProxyHeader
-* graphiteTCPAddress
-* graphitePrefix
-* logMetrics
-* docStoreBaseURL - document-store-api base url (http://localhost:8080/__document-store-api)
-* docStoreApiEndpoint - the endpoint for content retrieval (/content/{uuid})
-* publicAnnotationsApiBaseURL - public-annotations-api base url (http://localhost:8080/__public-annotations-api)
-* publicAnnotationsApiEndpoint - the endpoint for metadata retrieval (/content/{uuid}/annotations/{platformVersion})
-* whitelistedMetadataOriginSystemHeaders - Origin-System-Ids that are supported to be processed from the PostPublicationEvents queue
-* whitelistedContentURIs - Space separated list with content URI substrings - to identify accepted content types
+        $GOPATH/bin/post-publication-combiner
 
 Please check --help for more details.
 
