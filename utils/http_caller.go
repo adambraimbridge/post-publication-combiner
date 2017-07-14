@@ -42,7 +42,7 @@ func executeHTTPRequest(urlStr string, httpClient Client) (b []byte, status int,
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, resp.StatusCode, fmt.Errorf("Error executing requests for url=%s, error=%v", urlStr, err)
+		return nil, -1, fmt.Errorf("Error executing requests for url=%s, error=%v", urlStr, err)
 	}
 
 	defer cleanUp(resp)

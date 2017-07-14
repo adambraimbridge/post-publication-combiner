@@ -3,16 +3,23 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/Financial-Times/post-publication-combiner/utils"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/Financial-Times/message-queue-go-producer/producer"
+	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/stretchr/testify/assert"
+)
+
+const (
+	DocStoreAPIPath          = "/doc-store-api"
+	PublicAnnotationsAPIPath = "/public-annotations-api"
 )
 
 func TestCheckIfDocumentStoreIsReachable_Errors(t *testing.T) {
-
 	expError := errors.New("some error")
 	dc := dummyClient{
 		err: expError,
@@ -24,7 +31,7 @@ func TestCheckIfDocumentStoreIsReachable_Errors(t *testing.T) {
 
 	resp, err := h.checkIfDocumentStoreIsReachable()
 	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", expError, err))
-	assert.Equal(t, ResponseOK, resp)
+	assert.Empty(t, resp)
 }
 
 func TestCheckIfDocumentStoreIsReachable_Succeeds(t *testing.T) {
@@ -43,7 +50,6 @@ func TestCheckIfDocumentStoreIsReachable_Succeeds(t *testing.T) {
 }
 
 func TestCheckIfPublicAnnotationsApiIsReachable_Errors(t *testing.T) {
-
 	expError := errors.New("some error")
 	dc := dummyClient{
 		err: expError,
@@ -55,7 +61,7 @@ func TestCheckIfPublicAnnotationsApiIsReachable_Errors(t *testing.T) {
 
 	resp, err := h.checkIfPublicAnnotationsAPIIsReachable()
 	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", expError, err))
-	assert.Equal(t, ResponseOK, resp)
+	assert.Empty(t, resp)
 }
 
 func TestCheckIfPublicAnnotationsApiIsReachable_Succeeds(t *testing.T) {
@@ -73,58 +79,90 @@ func TestCheckIfPublicAnnotationsApiIsReachable_Succeeds(t *testing.T) {
 	assert.Equal(t, ResponseOK, resp)
 }
 
-func TestCheckIfTopicIsPresent_HTTP_Call_Errors(t *testing.T) {
+func TestGTG_Good(t *testing.T) {
+	dc := dummyClient{
+		statusCode: http.StatusOK,
+	}
+	h := HealthcheckHandler{
+		httpClient:                  &dc,
+		producer:                    &mockProducer{isConnectionHealthy: true},
+		consumer:                    &mockConsumer{isConnectionHealthy: true},
+		docStoreAPIBaseURL:          "doc-store-base-url",
+		publicAnnotationsAPIBaseURL: "pub-ann-base-url",
+	}
 
-	tests := []struct {
-		client   utils.Client
-		topic    string
-		expError error
+	status := h.GTG()
+	assert.True(t, status.GoodToGo)
+	assert.Empty(t, status.Message)
+}
+
+func TestGTG_Bad(t *testing.T) {
+	testCases := []struct {
+		description       string
+		producer          producer.MessageProducer
+		consumer          consumer.MessageConsumer
+		docStoreAPIStatus int
+		pubAnnAPIStatus   int
 	}{
 		{
-			dummyClient{
-				err: errors.New("some error"),
-			},
-			"some-topic",
-			errors.New("some error"),
+			description:       "Producer KafkaProxy GTG endpoint returns 503",
+			producer:          &mockProducer{isConnectionHealthy: false},
+			consumer:          &mockConsumer{isConnectionHealthy: true},
+			docStoreAPIStatus: 200,
+			pubAnnAPIStatus:   200,
 		},
 		{
-			dummyClient{
-				statusCode: http.StatusOK,
-				body:       "cannot-be-unmarshalled",
-			},
-			"some-topic",
-			errors.New("invalid character"),
+			description:       "Consumer KafkaProxy GTG endpoint returns 503",
+			producer:          &mockProducer{isConnectionHealthy: true},
+			consumer:          &mockConsumer{isConnectionHealthy: false},
+			docStoreAPIStatus: 200,
+			pubAnnAPIStatus:   200,
 		},
 		{
-			dummyClient{
-				statusCode: http.StatusOK,
-				body:       `["topic1","topic2"]`,
-			},
-			"some-topic",
-			fmt.Errorf("Connection could be established to kafka-proxy, but topic %s was not found", "some-topic"),
+			description:       "DocumentStoreApi GTG endpoint returns 503",
+			producer:          &mockProducer{isConnectionHealthy: true},
+			consumer:          &mockConsumer{isConnectionHealthy: true},
+			docStoreAPIStatus: 503,
+			pubAnnAPIStatus:   200,
 		},
 		{
-			dummyClient{
-				statusCode: http.StatusOK,
-				body:       `["topic1","topic2"]`,
-			},
-			"topic1",
-			nil,
+			description:       "PublicAnnotationsApi GTG endpoint returns 503",
+			producer:          &mockProducer{isConnectionHealthy: true},
+			consumer:          &mockConsumer{isConnectionHealthy: true},
+			docStoreAPIStatus: 200,
+			pubAnnAPIStatus:   503,
 		},
 	}
 
-	for _, testCase := range tests {
-		h := HealthcheckHandler{
-			proxyAddress: "proxy-address",
-			httpClient:   testCase.client,
-		}
-		err := checkIfTopicIsPresent(&h, testCase.topic)
-		if testCase.expError == nil {
-			assert.Nil(t, err)
-		} else {
-			assert.Contains(t, err.Error(), testCase.expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", testCase.expError, err))
-		}
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			server := getMockedServer(tc.docStoreAPIStatus, tc.pubAnnAPIStatus)
+			defer server.Close()
+
+			h := HealthcheckHandler{
+				httpClient:                  http.DefaultClient,
+				producer:                    tc.producer,
+				consumer:                    tc.consumer,
+				docStoreAPIBaseURL:          server.URL + DocStoreAPIPath,
+				publicAnnotationsAPIBaseURL: server.URL + PublicAnnotationsAPIPath,
+			}
+
+			status := h.GTG()
+			assert.False(t, status.GoodToGo)
+		})
 	}
+}
+
+func getMockedServer(docStoreAPIStatus, pubAnnAPIStatus int) *httptest.Server {
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+	mux.HandleFunc(DocStoreAPIPath+GTGEndpoint, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(docStoreAPIStatus)
+	})
+	mux.HandleFunc(PublicAnnotationsAPIPath+GTGEndpoint, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(pubAnnAPIStatus)
+	})
+	return server
 }
 
 type dummyClient struct {
@@ -139,4 +177,38 @@ func (c dummyClient) Do(req *http.Request) (*http.Response, error) {
 		Body:       ioutil.NopCloser(strings.NewReader(c.body)),
 	}
 	return resp, c.err
+}
+
+type mockProducer struct {
+	isConnectionHealthy bool
+}
+
+func (p *mockProducer) SendMessage(string, producer.Message) error {
+	return nil
+}
+
+func (p *mockProducer) ConnectivityCheck() (string, error) {
+	if p.isConnectionHealthy {
+		return "", nil
+	}
+
+	return "", errors.New("Error connecting to the queue")
+}
+
+type mockConsumer struct {
+	isConnectionHealthy bool
+}
+
+func (p *mockConsumer) Start() {
+}
+
+func (p *mockConsumer) Stop() {
+}
+
+func (p *mockConsumer) ConnectivityCheck() (string, error) {
+	if p.isConnectionHealthy {
+		return "", nil
+	}
+
+	return "", errors.New("Error connecting to the queue")
 }

@@ -1,18 +1,6 @@
 package main
 
 import (
-	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
-	health "github.com/Financial-Times/go-fthealth/v1_1"
-	"github.com/Financial-Times/http-handlers-go/httphandlers"
-	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	"github.com/Financial-Times/post-publication-combiner/processor"
-	"github.com/Financial-Times/post-publication-combiner/utils"
-	status "github.com/Financial-Times/service-status-go/httphandlers"
-	"github.com/Sirupsen/logrus"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/jawher/mow.cli"
-	"github.com/rcrowley/go-metrics"
 	"net"
 	"net/http"
 	"os"
@@ -20,6 +8,20 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
+	health "github.com/Financial-Times/go-fthealth/v1_1"
+	"github.com/Financial-Times/http-handlers-go/httphandlers"
+	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	status "github.com/Financial-Times/service-status-go/httphandlers"
+	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"github.com/jawher/mow.cli"
+	"github.com/rcrowley/go-metrics"
+
+	"github.com/Financial-Times/post-publication-combiner/processor"
+	"github.com/Financial-Times/post-publication-combiner/utils"
 )
 
 func main() {
@@ -185,13 +187,13 @@ func main() {
 		msgProcessor := processor.NewMsgProcessor(
 			pQConf,
 			messagesCh,
-			utils.ApiURL{*docStoreAPIBaseURL, *docStoreAPIEndpoint},
-			utils.ApiURL{*publicAnnotationsAPIBaseURL, *publicAnnotationsAPIEndpoint},
+			utils.ApiURL{BaseURL: *docStoreAPIBaseURL, Endpoint: *docStoreAPIEndpoint},
+			utils.ApiURL{BaseURL: *publicAnnotationsAPIBaseURL, Endpoint: *publicAnnotationsAPIEndpoint},
 			&client,
 			processorConf)
 		go msgProcessor.ProcessMessages()
 
-		routeRequests(port, &requestHandler{processor: msgProcessor}, NewCombinerHealthcheck(*kafkaProxyAddress, *kafkaProxyRoutingHeader, &client, *contentTopic, *metadataTopic, *combinedTopic, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
+		routeRequests(port, &requestHandler{processor: msgProcessor}, NewCombinerHealthcheck(msgProcessor.MsgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
 	}
 
 	logrus.SetLevel(logrus.InfoLevel)
@@ -204,17 +206,15 @@ func main() {
 }
 
 func routeRequests(port *string, requestHandler *requestHandler, healthService *HealthcheckHandler) {
-
 	r := http.NewServeMux()
 
 	r.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
 	r.HandleFunc(status.PingPath, status.PingHandler)
-	r.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.gtgCheck))
+	r.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.GTG))
 
 	checks := []health.Check{
-		checkPostMetadataPublicationFoundHealthcheck(healthService),
-		checkPostContentPublicationTopicIsFoundHealthcheck(healthService),
-		checkCombinedPublicationTopicTopicIsFoundHealthcheck(healthService),
+		checkKafkaProxyProducerConnectivity(healthService),
+		checkKafkaProxyConsumerConnectivity(healthService),
 		checkDocumentStoreAPIHealthcheck(healthService),
 		checkPublicAnnotationsAPIHealthcheck(healthService),
 	}
