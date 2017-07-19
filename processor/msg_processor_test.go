@@ -277,7 +277,7 @@ func TestProcessMetadataMsg_Forwarder_Errors(t *testing.T) {
 func TestProcessMetadataMsg_Successfully_Forwarded(t *testing.T) {
 	m := consumer.Message{
 		Headers: map[string]string{"X-Request-Id": "some-tid1", "Origin-System-Id": "http://cmdb.ft.com/systems/binding-service"},
-		Body:    `{"uuid":"some_uuid","annotation":[{"ID":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","PrefLabel":"Barclays","Types":["http://base-url/core/Thing","http://base-url/concept/Concept"],"Predicate":"http://base-url/about","ApiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","TmeIDs":["tme_id1"],"UUIDs":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"PlatformVersion":"v1"}]}`,
+		Body:    `{"uuid":"some_uuid","annotations":[{"ID":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","PrefLabel":"Barclays","Types":["http://base-url/core/Thing","http://base-url/concept/Concept"],"Predicate":"http://base-url/about","ApiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","TmeIDs":["tme_id1"],"UUIDs":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"PlatformVersion":"v1"}]}`,
 	}
 
 	allowedOrigins := []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"}
