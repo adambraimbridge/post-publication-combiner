@@ -207,7 +207,7 @@ func (p *MsgProcessor) filterAndForwardMsg(headers map[string]string, combinedMS
 		return err
 	}
 	if !isForced {
-		logger.MonitoringValidationEvent("Combine", tid, combinedMSG.UUID, "Annotations","Successfully combined")
+		logger.MonitoringEventWithUUID("Combine", tid, combinedMSG.UUID, "Annotations","Successfully combined")
 	} else {
 		logger.InfoEventWithUUID(tid, combinedMSG.UUID, "Successfully combined")
 	}
