@@ -119,7 +119,7 @@ func (p *MsgProcessor) ForceMessagePublish(uuid string, tid string) error {
 	}
 
 	//forward data
-	return p.filterAndForwardMsg(h, &combinedMSG, tid, true)
+	return p.filterAndForwardMsg(h, &combinedMSG, tid, true, "")
 }
 
 func (p *MsgProcessor) processContentMsg(m consumer.Message) {
@@ -162,7 +162,7 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 	}
 
 	//forward data
-	p.filterAndForwardMsg(m.Headers, &combinedMSG, tid, false)
+	p.filterAndForwardMsg(m.Headers, &combinedMSG, tid, false, "")
 }
 
 func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
@@ -191,10 +191,10 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 		logger.ErrorEvent(tid, "Error obtaining the combined message. Content couldn't get read. Message will be skipped.", err)
 		return
 	}
-	p.filterAndForwardMsg(m.Headers, &combinedMSG, tid, false)
+	p.filterAndForwardMsg(m.Headers, &combinedMSG, tid, false, "Annotations")
 }
 
-func (p *MsgProcessor) filterAndForwardMsg(headers map[string]string, combinedMSG *model.CombinedModel, tid string, isForced bool) error {
+func (p *MsgProcessor) filterAndForwardMsg(headers map[string]string, combinedMSG *model.CombinedModel, tid string, isForced bool, contentType string) error {
 	if !combinedMSG.Content.MarkedDeleted && !isTypeAllowed(p.config.SupportedContentTypes, combinedMSG.Content.Type) {
 		logger.InfoEvent(tid, fmt.Sprintf("Skipped unsupported content with type: %v", combinedMSG.Content.Type))
 		return InvalidContentTypeError
@@ -207,7 +207,7 @@ func (p *MsgProcessor) filterAndForwardMsg(headers map[string]string, combinedMS
 		return err
 	}
 	if !isForced {
-		logger.MonitoringEventWithUUID("Combine", tid, combinedMSG.UUID, "Annotations","Successfully combined")
+		logger.MonitoringEventWithUUID("Combine", tid, combinedMSG.UUID, contentType, "Successfully combined")
 	} else {
 		logger.InfoEventWithUUID(tid, combinedMSG.UUID, "Successfully combined")
 	}
