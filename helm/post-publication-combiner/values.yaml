@@ -1,0 +1,25 @@
+# Default values for post-publication-combiner.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+service:
+  name: "" # The name of the service, should be defined in the specific app-configs folder.
+  hasHealthcheck: "true"
+replicaCount: 2
+image:
+  repository: coco/post-publication-combiner
+  pullPolicy: IfNotPresent
+resources:
+  limits:
+    memory: 256Mi
+env:
+  PORT: ""
+  KAFKA_CONTENT_TOPIC_NAME: ""
+  KAFKA_METADATA_TOPIC_NAME: ""
+  KAFKA_COMBINED_TOPIC_NAME: ""
+  KAFKA_PROXY_CONTENT_CONSUMER_GROUP: ""
+  KAFKA_PROXY_METADATA_CONSUMER_GROUP: ""
+  LOG_METRICS: ""
+  DOCUMENT_STORE_BASE_URL: ""
+  DOCUMENT_STORE_API_ENDPOINT: ""
+  PUBLIC_ANNOTATIONS_API_BASE_URL: ""
+  PUBLIC_ANNOTATIONS_API_ENDPOINT: ""

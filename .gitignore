@@ -1,6 +1,6 @@
 *.iml
 .idea
-post-publication-combiner*
+/post-publication-combiner*
 vendor/*/
 .project
 .vscode
