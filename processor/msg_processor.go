@@ -3,7 +3,6 @@ package processor
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
@@ -97,7 +96,7 @@ func (p *MsgProcessor) ForceMessagePublish(uuid string, tid string) error {
 
 	if tid == "" {
 		tid = "tid_force_publish" + uniuri.NewLen(10) + "_post_publication_combiner"
-		logger.InfoEvent(tid, "Generated tid")
+		logger.NewEntry(tid).Info("Generated tid")
 	}
 
 	h := map[string]string{
@@ -108,14 +107,13 @@ func (p *MsgProcessor) ForceMessagePublish(uuid string, tid string) error {
 	//get combined message
 	combinedMSG, err := p.DataCombiner.GetCombinedModel(uuid)
 	if err != nil {
-		logger.ErrorEvent(tid, "Error obtaining the combined message, it will be skipped", err)
+		logger.NewEntry(tid).Error("Error obtaining the combined message, it will be skipped")
 		return err
 	}
 
 	if combinedMSG.Content.UUID == "" && combinedMSG.Metadata == nil {
-		err := NotFoundError
-		logger.ErrorEventWithUUID(tid, uuid, "Could not find content", err)
-		return err
+		logger.NewEntry(tid).WithUUID(uuid).WithError(NotFoundError).Error("Could not find content")
+		return NotFoundError
 	}
 
 	//forward data
@@ -131,13 +129,13 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 	var cm model.MessageContent
 	b := []byte(m.Body)
 	if err := json.Unmarshal(b, &cm); err != nil {
-		logger.ErrorEvent(tid, "Could not unmarshall message", err)
+		logger.NewMonitoringEntry("Combine", tid, "").WithError(err).Error("Could not unmarshall message")
 		return
 	}
 
 	// wordpress, next-video, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
 	if !containsSubstringOf(p.config.SupportedContentURIs, cm.ContentURI) {
-		logger.InfoEvent(tid, fmt.Sprintf("Skipped unsupported content with contentUri: %v", cm.ContentURI))
+		logger.NewEntry(tid).Infof("Skipped unsupported content with contentUri: %v", cm.ContentURI)
 		return
 	}
 
@@ -150,14 +148,14 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 
 	if cm.ContentModel.UUID == "" {
 		err := errors.New("UUID not found after message marshalling")
-		logger.ErrorEvent(tid, "UUID not found after message marshalling, skipping message.", err)
+		logger.NewMonitoringEntry("Combine", tid, "").WithError(err).Error("UUID not found after message marshalling, skipping message")
 		return
 	}
 
 	//combine data
 	combinedMSG, err := p.DataCombiner.GetCombinedModelForContent(cm.ContentModel, getPlatformVersion(cm.ContentURI))
 	if err != nil {
-		logger.ErrorEvent(tid, "Error obtaining the combined message. Metadata could not be read. Message will be skipped.", err)
+		logger.NewMonitoringEntry("Combine", tid, "").WithError(err).Error("Error obtaining the combined message. Metadata could not be read. Message will be skipped")
 		return
 	}
 
@@ -173,7 +171,7 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 
 	//decide based on the origin system header - whether you want to process the message or not
 	if !containsSubstringOf(p.config.SupportedHeaders, h) {
-		logger.InfoEvent(tid, fmt.Sprintf("Skipped unsupported annotations with Origin-System-Id: %v.", h))
+		logger.NewEntry(tid).Infof("Skipped unsupported annotations with Origin-System-Id: %v.", h)
 		return
 	}
 
@@ -181,14 +179,14 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 	var ann model.Annotations
 	b := []byte(m.Body)
 	if err := json.Unmarshal(b, &ann); err != nil {
-		logger.ErrorEvent(tid, "Could not unmarshall message", err)
+		logger.NewMonitoringEntry("Combine", tid, "Annotations").WithError(err).Error("Could not unmarshall message")
 		return
 	}
 
 	//combine data
 	combinedMSG, err := p.DataCombiner.GetCombinedModelForAnnotations(ann, getPlatformVersion(h))
 	if err != nil {
-		logger.ErrorEvent(tid, "Error obtaining the combined message. Content couldn't get read. Message will be skipped.", err)
+		logger.NewMonitoringEntry("Combine", tid, "Annotations").WithError(err).Error("Error obtaining the combined message. Content couldn't get read. Message will be skipped")
 		return
 	}
 	p.filterAndForwardMsg(m.Headers, &combinedMSG, tid, false, "Annotations")
@@ -196,20 +194,20 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 
 func (p *MsgProcessor) filterAndForwardMsg(headers map[string]string, combinedMSG *model.CombinedModel, tid string, isForced bool, contentType string) error {
 	if !combinedMSG.Content.MarkedDeleted && !isTypeAllowed(p.config.SupportedContentTypes, combinedMSG.Content.Type) {
-		logger.InfoEvent(tid, fmt.Sprintf("Skipped unsupported content with type: %v", combinedMSG.Content.Type))
+		logger.NewEntry(tid).Infof("Skipped unsupported content with type: %v", combinedMSG.Content.Type)
 		return InvalidContentTypeError
 	}
 
 	//forward data
 	err := p.forwardMsg(headers, combinedMSG)
 	if err != nil {
-		logger.ErrorEvent(tid, "Error sending transformed message to queue", err)
+		logger.NewMonitoringEntry("Combine", tid, contentType).WithUUID(combinedMSG.UUID).WithError(err).Error("Error sending transformed message to queue")
 		return err
 	}
 	if !isForced {
-		logger.MonitoringEventWithUUID("Combine", tid, combinedMSG.UUID, contentType, "Successfully combined")
+		logger.NewMonitoringEntry("Combine", tid, contentType).WithUUID(combinedMSG.UUID).Info("Successfully combined")
 	} else {
-		logger.InfoEventWithUUID(tid, combinedMSG.UUID, "Successfully combined")
+		logger.NewEntry(tid).WithUUID(combinedMSG.UUID).Info("Successfully combined")
 	}
 	return nil
 }
@@ -233,10 +231,10 @@ func extractTID(headers map[string]string) string {
 	tid := headers["X-Request-Id"]
 
 	if tid == "" {
-		logger.Infof(map[string]interface{}{}, "Couldn't extract transaction id - X-Request-Id header could not be found.")
+		logger.Infof(nil, "Couldn't extract transaction id - X-Request-Id header could not be found.")
 		tid = "tid_" + uniuri.NewLen(10) + "_post_publication_combiner"
-		logger.Infof(map[string]interface{}{}, "Couldn't extract transaction id - X-Request-Id header could not be found.")
-		logger.InfoEvent(tid, "Generated tid")
+		logger.NewEntry(tid).Info("Couldn't extract transaction id - X-Request-Id header could not be found.")
+		logger.NewEntry(tid).Info("Generated tid")
 	}
 
 	return tid

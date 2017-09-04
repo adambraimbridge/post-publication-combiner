@@ -208,7 +208,7 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		logger.FatalEvent("App could not start", err)
+		logger.Fatalf(nil, err, "App could not start")
 	}
 }
 
@@ -251,7 +251,7 @@ func routeRequests(port *int, requestHandler *requestHandler, healthService *Hea
 	wg.Add(1)
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			logger.Infof(map[string]interface{}{"error": err}, "HTTP server closing")
+			logger.Infof(nil, "HTTP server closing")
 		}
 		wg.Done()
 	}()
@@ -260,7 +260,7 @@ func routeRequests(port *int, requestHandler *requestHandler, healthService *Hea
 	logger.Infof(map[string]interface{}{}, "Application is shutting down")
 
 	if err := server.Close(); err != nil {
-		logger.Errorf(map[string]interface{}{"error": err}, "Unable to stop http server")
+		logger.Errorf(nil, err, "Unable to stop http server")
 	}
 
 	wg.Wait()

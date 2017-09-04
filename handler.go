@@ -24,7 +24,7 @@ func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *
 	defer request.Body.Close()
 
 	if !isValidUUID(uuid) {
-		logger.ErrorEvent(transactionID, "Invalid UUID", errors.New("Invalid UUID"))
+		logger.NewEntry(transactionID).WithError(errors.New("Invalid UUID")).Error("Invalid UUID")
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 
