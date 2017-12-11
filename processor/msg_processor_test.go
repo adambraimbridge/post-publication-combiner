@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	"github.com/Financial-Times/post-publication-combiner/model"
 	"github.com/Sirupsen/logrus"
 	testLogger "github.com/Sirupsen/logrus/hooks/test"
 	"github.com/golang/go/src/pkg/fmt"
@@ -106,7 +105,7 @@ func TestProcessContentMsg_Forwarder_Errors(t *testing.T) {
 	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris, SupportedContentTypes: allowedContentTypes}
-	combiner := DummyDataCombiner{data: model.CombinedModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b", Content: model.ContentModel{Type: "Article"}}}
+	combiner := DummyDataCombiner{data: CombinedModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b", Content: ContentModel{Type: "Article"}}}
 	producer := DummyMsgProducer{t: t, expError: errors.New("some producer error")}
 
 	p := &MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
@@ -131,7 +130,7 @@ func TestProcessContentMsg_Successfully_Forwarded(t *testing.T) {
 	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris, SupportedContentTypes: allowedContentTypes}
-	combiner := DummyDataCombiner{data: model.CombinedModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b", Content: model.ContentModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b", Title: "simple title", Type: "Article"}}}
+	combiner := DummyDataCombiner{data: CombinedModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b", Content: ContentModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b", Title: "simple title", Type: "Article"}}}
 
 	expMsg := producer.Message{
 		Headers: m.Headers,
@@ -161,9 +160,9 @@ func TestProcessContentMsg_DeleteEvent_Successfully_Forwarded(t *testing.T) {
 	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris, SupportedContentTypes: allowedContentTypes}
-	combiner := DummyDataCombiner{data: model.CombinedModel{
+	combiner := DummyDataCombiner{data: CombinedModel{
 		UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-		Content: model.ContentModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+		Content: ContentModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
 			MarkedDeleted: true}}}
 
 	expMsg := producer.Message{
@@ -258,7 +257,7 @@ func TestProcessMetadataMsg_Forwarder_Errors(t *testing.T) {
 	allowedOrigins := []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"}
 	allowedContentTypes := []string{"Article", "Video", ""}
 	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins, SupportedContentTypes: allowedContentTypes}
-	combiner := DummyDataCombiner{data: model.CombinedModel{UUID: "some_uuid"}}
+	combiner := DummyDataCombiner{data: CombinedModel{UUID: "some_uuid"}}
 	producer := DummyMsgProducer{t: t, expError: errors.New("some producer error")}
 
 	p := &MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
@@ -285,12 +284,12 @@ func TestProcessMetadataMsg_Successfully_Forwarded(t *testing.T) {
 	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins, SupportedContentTypes: allowedContentTypes}
 
 	combiner := DummyDataCombiner{
-		data: model.CombinedModel{
+		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: model.ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
-			Metadata: []model.Annotation{
+			Content: ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
+			Metadata: []Annotation{
 				{
-					Thing: model.Thing{
+					Thing: Thing{
 						ID:        "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
 						PrefLabel: "Barclays",
 						Types: []string{"http://base-url/core/Thing",
@@ -337,12 +336,12 @@ func TestForceMessageWithTID(t *testing.T) {
 	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins, SupportedContentTypes: allowedContentTypes}
 
 	combiner := DummyDataCombiner{
-		data: model.CombinedModel{
+		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: model.ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
-			Metadata: []model.Annotation{
+			Content: ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
+			Metadata: []Annotation{
 				{
-					Thing: model.Thing{
+					Thing: Thing{
 						ID:        "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
 						PrefLabel: "Barclays",
 						Types: []string{"http://base-url/core/Thing",
@@ -391,12 +390,12 @@ func TestForceMessageWithoutTID(t *testing.T) {
 	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins, SupportedContentTypes: allowedContentTypes}
 
 	combiner := DummyDataCombiner{
-		data: model.CombinedModel{
+		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: model.ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
-			Metadata: []model.Annotation{
+			Content: ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
+			Metadata: []Annotation{
 				{
-					Thing: model.Thing{
+					Thing: Thing{
 						ID:        "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
 						PrefLabel: "Barclays",
 						Types: []string{"http://base-url/core/Thing",
@@ -484,12 +483,12 @@ func TestForceMessageFilteredError(t *testing.T) {
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins, SupportedContentTypes: allowedContentTypes}
 	combiner := DummyDataCombiner{
-		data: model.CombinedModel{
+		data: CombinedModel{
 			UUID:    "80fb3e57-8d3b-4f07-bbb6-8788452d63cb",
-			Content: model.ContentModel{UUID: "80fb3e57-8d3b-4f07-bbb6-8788452d63cb", Title: "simple title", Type: "Content"},
-			Metadata: []model.Annotation{
+			Content: ContentModel{UUID: "80fb3e57-8d3b-4f07-bbb6-8788452d63cb", Title: "simple title", Type: "Content"},
+			Metadata: []Annotation{
 				{
-					Thing: model.Thing{
+					Thing: Thing{
 						ID:        "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
 						PrefLabel: "Barclays",
 						Types: []string{"http://base-url/core/Thing",
@@ -532,12 +531,12 @@ func TestForceMessageProducerError(t *testing.T) {
 	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins, SupportedContentTypes: allowedContentTypes}
 
 	combiner := DummyDataCombiner{
-		data: model.CombinedModel{
+		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: model.ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
-			Metadata: []model.Annotation{
+			Content: ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
+			Metadata: []Annotation{
 				{
-					Thing: model.Thing{
+					Thing: Thing{
 						ID:        "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
 						PrefLabel: "Barclays",
 						Types: []string{"http://base-url/core/Thing",
@@ -602,7 +601,7 @@ func TestForwardMsg(t *testing.T) {
 
 	for _, testCase := range tests {
 
-		var model model.CombinedModel
+		var model CombinedModel
 		err := json.Unmarshal([]byte(testCase.body), &model)
 		assert.Nil(t, err)
 
@@ -753,18 +752,18 @@ func (p DummyMsgProducer) ConnectivityCheck() (string, error) {
 }
 
 type DummyDataCombiner struct {
-	data model.CombinedModel
+	data CombinedModel
 	err  error
 }
 
-func (c DummyDataCombiner) GetCombinedModelForContent(content model.ContentModel, platformVersion string) (model.CombinedModel, error) {
+func (c DummyDataCombiner) GetCombinedModelForContent(content ContentModel, platformVersion string) (CombinedModel, error) {
 	return c.data, c.err
 }
 
-func (c DummyDataCombiner) GetCombinedModelForAnnotations(metadata model.Annotations, platformVersion string) (model.CombinedModel, error) {
+func (c DummyDataCombiner) GetCombinedModelForAnnotations(metadata Annotations, platformVersion string) (CombinedModel, error) {
 	return c.data, c.err
 }
 
-func (c DummyDataCombiner) GetCombinedModel(uuid string) (model.CombinedModel, error) {
+func (c DummyDataCombiner) GetCombinedModel(uuid string) (CombinedModel, error) {
 	return c.data, c.err
 }

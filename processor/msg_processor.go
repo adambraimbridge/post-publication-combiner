@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	"github.com/Financial-Times/post-publication-combiner/model"
 	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/Sirupsen/logrus"
 	"github.com/dchest/uniuri"
@@ -16,18 +15,18 @@ import (
 
 const (
 	CombinerMessageType = "cms-combined-content-published"
-	// PlatformV1 V1 platform (Falcon)
-	PlatformV1 = "v1"
-	// PlatformVideo current video platform
-	PlatformVideo = "next-video"
+
+	PlatformV1    = "v1"         // PlatformV1 V1 platform (Falcon)
+	PlatformVideo = "next-video" // PlatformVideo current video platform
 
 	contentTypeVideo = "Video"
 	videoAuthority   = "http://api.ft.com/system/NEXT-VIDEO-EDITOR"
 )
 
-// NotFoundError used when the content can not be found by the platform
-var NotFoundError = errors.New("Content not found")
-var InvalidContentTypeError = errors.New("Invalid content type")
+var (
+	NotFoundError           = errors.New("Content not found") // used when the content can not be found by the platform
+	InvalidContentTypeError = errors.New("Invalid content type")
+)
 
 type Processor interface {
 	ProcessMessages()
@@ -111,7 +110,7 @@ func (p *MsgProcessor) ForceMessagePublish(uuid string, tid string) error {
 		return err
 	}
 
-	if combinedMSG.Content.UUID == "" && combinedMSG.Metadata == nil {
+	if combinedMSG.Content.getUUID() == "" && combinedMSG.Metadata == nil {
 		err := NotFoundError
 		logrus.Errorf("%v - Could not find content with uuid %s. %v", tid, uuid, err)
 		return err
@@ -127,28 +126,19 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 	m.Headers["X-Request-Id"] = tid
 
 	//parse message - collect data, then forward it to the next queue
-	var cm model.MessageContent
+
+	// todo: remove knowledge of the model structure... leave it as a general key-value map. let the consumers decide what do they expect...
+	var cm MessageContent
 	b := []byte(m.Body)
 	if err := json.Unmarshal(b, &cm); err != nil {
 		logrus.Errorf("Could not unmarshall message with TID=%v, error=%v", tid, err.Error())
 		return
 	}
 
+	// todo: remove filtering -
 	// wordpress, next-video, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
 	if !containsSubstringOf(p.config.SupportedContentURIs, cm.ContentURI) {
 		logrus.Infof("%v - Skipped unsupported content with contentUri: %v. ", tid, cm.ContentURI)
-		return
-	}
-
-	//handle delete events
-	if reflect.DeepEqual(cm.ContentModel, model.ContentModel{}) {
-		sl := strings.Split(cm.ContentURI, "/")
-		cm.ContentModel.UUID = sl[len(sl)-1]
-		cm.ContentModel.MarkedDeleted = true
-	}
-
-	if cm.ContentModel.UUID == "" {
-		logrus.Errorf("UUID not found after message marshalling, skipping message with TID=%v.", tid)
 		return
 	}
 
@@ -156,6 +146,20 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 	combinedMSG, err := p.DataCombiner.GetCombinedModelForContent(cm.ContentModel, getPlatformVersion(cm.ContentURI))
 	if err != nil {
 		logrus.Errorf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped. %v", tid, err)
+		return
+	}
+
+	// todo: remove delete detection
+	//handle delete events
+	if reflect.DeepEqual(cm.ContentModel, ContentModel{}) {
+		sl := strings.Split(cm.ContentURI, "/")
+		combinedMSG.UUID = sl[len(sl)-1]
+		combinedMSG.MarkedDeleted = true
+	}
+
+	// todo: ???
+	if combinedMSG.UUID == "" {
+		logrus.Errorf("UUID not found after message marshalling, skipping message with TID=%v.", tid)
 		return
 	}
 
@@ -176,7 +180,7 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 	}
 
 	//parse message - collect data, then forward it to the next queue
-	var ann model.Annotations
+	var ann Annotations
 	b := []byte(m.Body)
 	if err := json.Unmarshal(b, &ann); err != nil {
 		logrus.Errorf("Could not unmarshall message with TID=%v, error=%v", tid, err.Error())
@@ -192,9 +196,11 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 	p.filterAndForwardMsg(m.Headers, &combinedMSG, tid)
 }
 
-func (p *MsgProcessor) filterAndForwardMsg(headers map[string]string, combinedMSG *model.CombinedModel, tid string) error {
-	if !combinedMSG.Content.MarkedDeleted && !isTypeAllowed(p.config.SupportedContentTypes, combinedMSG.Content.Type) {
-		logrus.Infof("%v - Skipped unsupported content with type: %v", tid, combinedMSG.Content.Type)
+func (p *MsgProcessor) filterAndForwardMsg(headers map[string]string, combinedMSG *CombinedModel, tid string) error {
+
+	// todo: remove logic
+	if !combinedMSG.MarkedDeleted && !isTypeAllowed(p.config.SupportedContentTypes, combinedMSG.Content.getType()) {
+		logrus.Infof("%v - Skipped unsupported content with type: %v", tid, combinedMSG.Content.getType())
 		return InvalidContentTypeError
 	}
 
@@ -212,7 +218,7 @@ func isTypeAllowed(allowedTypes []string, value string) bool {
 	return contains(allowedTypes, value)
 }
 
-func (p *MsgProcessor) forwardMsg(headers map[string]string, model *model.CombinedModel) error {
+func (p *MsgProcessor) forwardMsg(headers map[string]string, model *CombinedModel) error {
 	// marshall message
 	b, err := json.Marshal(model)
 	if err != nil {
