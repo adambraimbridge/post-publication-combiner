@@ -219,11 +219,14 @@ func routeRequests(port *string, requestHandler *requestHandler, healthService *
 		checkPublicAnnotationsAPIHealthcheck(healthService),
 	}
 
-	hc := health.HealthCheck{
-		SystemCode:  "upp-post-publication-combiner",
-		Name:        "post-publication-combiner",
-		Description: "Checks for service dependencies: document-store, public-annotations-api, kafka proxy and the presence of related topics",
-		Checks:      checks,
+	hc := health.TimedHealthCheck{
+		HealthCheck: health.HealthCheck{
+			SystemCode:  "upp-post-publication-combiner",
+			Name:        "post-publication-combiner",
+			Description: "Checks for service dependencies: document-store, public-annotations-api, kafka proxy and the presence of related topics",
+			Checks:      checks,
+		},
+		Timeout: 10 * time.Second,
 	}
 
 	r.Handle("/__health", handlers.MethodHandler{"GET": http.HandlerFunc(health.Handler(hc))})
