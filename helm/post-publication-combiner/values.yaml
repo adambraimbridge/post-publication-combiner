@@ -9,8 +9,10 @@ image:
   repository: coco/post-publication-combiner
   pullPolicy: IfNotPresent
 resources:
+  requests:
+    memory: 25Mi
   limits:
-    memory: 256Mi
+    memory: 100Mi
 env:
   PORT: ""
   KAFKA_CONTENT_TOPIC_NAME: ""
