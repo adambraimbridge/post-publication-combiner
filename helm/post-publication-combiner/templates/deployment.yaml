@@ -24,9 +24,9 @@ spec:
           - labelSelector:
               matchExpressions:
               - key: app
-                  operator: In
-                  values:
-                  - {{ .Values.service.name }}
+                operator: In
+                values:
+                - {{ .Values.service.name }}
             topologyKey: "kubernetes.io/hostname"
       containers: 
       - name: {{ .Values.service.name }} 
