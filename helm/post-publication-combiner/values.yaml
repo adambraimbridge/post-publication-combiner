@@ -10,9 +10,9 @@ image:
   pullPolicy: IfNotPresent
 resources:
   requests:
-    memory: 25Mi
+    memory: 64Mi
   limits:
-    memory: 100Mi
+    memory: 256Mi
 env:
   PORT: ""
   KAFKA_CONTENT_TOPIC_NAME: ""
