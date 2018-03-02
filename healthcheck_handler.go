@@ -40,7 +40,7 @@ func checkKafkaProxyProducerConnectivity(h *HealthcheckHandler) health.Check {
 		BusinessImpact:   "Can't write CombinedPostPublicationEvents messages to queue. Indexing for search won't work.",
 		Name:             "Check connectivity to the kafka-proxy",
 		PanicGuide:       "https://dewey.ft.com/post-publication-combiner.html",
-		Severity:         1,
+		Severity:         2,
 		TechnicalSummary: "CombinedPostPublicationEvents messages can't be forwarded to the queue. Check if kafka-proxy is reachable.",
 		Checker:          h.producer.ConnectivityCheck,
 	}
@@ -51,7 +51,7 @@ func checkKafkaProxyConsumerConnectivity(h *HealthcheckHandler) health.Check {
 		BusinessImpact:   "Can't process PostPublicationEvents and PostMetadataPublicationEvents messages. Indexing for search won't work.",
 		Name:             "Check connectivity to the kafka-proxy",
 		PanicGuide:       "https://dewey.ft.com/post-publication-combiner.html",
-		Severity:         1,
+		Severity:         2,
 		TechnicalSummary: "PostPublicationEvents and PostMetadataPublicationEvents messages are not received from the queue. Check if kafka-proxy is reachable.",
 		Checker:          h.consumer.ConnectivityCheck,
 	}
@@ -62,7 +62,7 @@ func checkDocumentStoreAPIHealthcheck(h *HealthcheckHandler) health.Check {
 		BusinessImpact:   "CombinedPostPublication messages can't be constructed. Indexing for content search won't work.",
 		Name:             "Check connectivity to document-store-api",
 		PanicGuide:       "https://dewey.ft.com/post-publication-combiner.html",
-		Severity:         1,
+		Severity:         2,
 		TechnicalSummary: "Document-store-api is not reachable. Messages can't be successfully constructed, neither forwarded.",
 		Checker:          h.checkIfDocumentStoreIsReachable,
 	}
@@ -73,7 +73,7 @@ func checkPublicAnnotationsAPIHealthcheck(h *HealthcheckHandler) health.Check {
 		BusinessImpact:   "CombinedPostPublication messages can't be constructed. Indexing for content search won't work.",
 		Name:             "Check connectivity to public-annotations-api",
 		PanicGuide:       "https://dewey.ft.com/post-publication-combiner.html",
-		Severity:         1,
+		Severity:         2,
 		TechnicalSummary: "Public-annotations-api is not reachable. Messages can't be successfully constructed, neither forwarded.",
 		Checker:          h.checkIfPublicAnnotationsAPIIsReachable,
 	}
