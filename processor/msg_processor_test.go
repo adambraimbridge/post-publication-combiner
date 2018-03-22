@@ -762,8 +762,6 @@ func (p DummyMsgProducer) SendMessage(uuid string, m producer.Message) error {
 		assert.Equal(p.t, p.expTID, m.Headers["X-Request-Id"])
 	}
 
-	fmt.Println(p.expMsg)
-	fmt.Println(m)
 	assert.NotEmpty(p.t, m.Headers["X-Request-Id"])
 	assert.Equal(p.t, p.expMsg, m)
 
