@@ -43,19 +43,28 @@ type Thing struct {
 //******************* GET EXPECTED VALUES *********************
 
 func (cm ContentModel) getUUID() string {
-	return cm["uuid"].(string)
+	return getMapValueAsString("uuid", cm)
 }
 
 func (cm ContentModel) getType() string {
-	return cm["type"].(string)
+	return getMapValueAsString("type", cm)
 }
 
 func (cm ContentModel) getLastModified() string {
-	return cm["lastModified"].(string)
+	return getMapValueAsString("lastModified", cm)
 }
 
+func getMapValueAsString(key string, data map[string]interface{}) string {
+	if val, ok := data[key]; ok {
+		return val.(string)
+	}
+	return ""
+}
 func (cm ContentModel) getIdentifiers() []Identifier {
-	return cm["identifiers"].([]Identifier)
+	if val, ok := cm["identifiers"]; ok {
+		return val.([]Identifier)
+	}
+	return []Identifier{}
 }
 
 type Identifier struct {

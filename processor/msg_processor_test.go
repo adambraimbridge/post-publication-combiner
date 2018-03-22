@@ -3,13 +3,14 @@ package processor
 import (
 	"encoding/json"
 	"errors"
+	"testing"
+
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Sirupsen/logrus"
 	testLogger "github.com/Sirupsen/logrus/hooks/test"
 	"github.com/golang/go/src/pkg/fmt"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestProcessContentMsg_Unmarshall_Error(t *testing.T) {
@@ -105,7 +106,14 @@ func TestProcessContentMsg_Forwarder_Errors(t *testing.T) {
 	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris, SupportedContentTypes: allowedContentTypes}
-	combiner := DummyDataCombiner{data: CombinedModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b", Content: ContentModel{Type: "Article"}}}
+	combiner := DummyDataCombiner{
+		data: CombinedModel{
+			UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+			Content: ContentModel{
+				"Type": "Article",
+			},
+		},
+	}
 	producer := DummyMsgProducer{t: t, expError: errors.New("some producer error")}
 
 	p := &MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
@@ -130,7 +138,16 @@ func TestProcessContentMsg_Successfully_Forwarded(t *testing.T) {
 	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris, SupportedContentTypes: allowedContentTypes}
-	combiner := DummyDataCombiner{data: CombinedModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b", Content: ContentModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b", Title: "simple title", Type: "Article"}}}
+	combiner := DummyDataCombiner{
+		data: CombinedModel{
+			UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+			Content: ContentModel{
+				"UUID":  "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+				"Title": "simple title",
+				"Type":  "Article",
+			},
+		},
+	}
 
 	expMsg := producer.Message{
 		Headers: m.Headers,
@@ -162,8 +179,8 @@ func TestProcessContentMsg_DeleteEvent_Successfully_Forwarded(t *testing.T) {
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris, SupportedContentTypes: allowedContentTypes}
 	combiner := DummyDataCombiner{data: CombinedModel{
 		UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-		Content: ContentModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-			MarkedDeleted: true}}}
+		Content: ContentModel{"UUID": "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+			"MarkedDeleted": true}}}
 
 	expMsg := producer.Message{
 		Headers: m.Headers,
@@ -286,7 +303,7 @@ func TestProcessMetadataMsg_Successfully_Forwarded(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
+			Content: ContentModel{"UUID": "some_uuid", "Title": "simple title", "Type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -338,7 +355,7 @@ func TestForceMessageWithTID(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
+			Content: ContentModel{"UUID": "some_uuid", "Title": "simple title", "Type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -392,7 +409,7 @@ func TestForceMessageWithoutTID(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
+			Content: ContentModel{"UUID": "some_uuid", "Title": "simple title", "Type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -485,7 +502,7 @@ func TestForceMessageFilteredError(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "80fb3e57-8d3b-4f07-bbb6-8788452d63cb",
-			Content: ContentModel{UUID: "80fb3e57-8d3b-4f07-bbb6-8788452d63cb", Title: "simple title", Type: "Content"},
+			Content: ContentModel{"UUID": "80fb3e57-8d3b-4f07-bbb6-8788452d63cb", "Title": "simple title", "Type": "Content"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -533,7 +550,7 @@ func TestForceMessageProducerError(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
+			Content: ContentModel{"UUID": "some_uuid", "Title": "simple title", "Type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
