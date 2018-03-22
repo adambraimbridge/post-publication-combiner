@@ -50,24 +50,24 @@ func TestGetCombinedModelForContent(t *testing.T) {
 		{
 			ContentModel{
 				"uuid":  "622de808-3a7a-49bd-a7fb-2a33f64695be",
-				"Title": "Title",
-				"Body":  "<body>something relevant here</body>",
-				"Identifiers": []Identifier{
+				"title": "Title",
+				"body":  "<body>something relevant here</body>",
+				"identifiers": []Identifier{
 					{
 						Authority:       "FTCOM-METHODE_identifier",
 						IdentifierValue: "53217c65-ecef-426e-a3ac-3787e2e62e87",
 					},
 				},
-				"PublishedDate":      "2017-04-10T08:03:58.000Z",
-				"LastModified":       "2017-04-10T08:09:01.808Z",
-				"FirstPublishedDate": "2017-04-10T08:03:58.000Z",
-				"MediaType":          "mediaType",
-				"MarkedDeleted":      false,
-				"Byline":             "FT Reporters",
-				"Standfirst":         "A simple line with an article summary",
-				"Description":        "descr",
-				"MainImage":          "2934de46-5240-4c7d-8576-f12ae12e4a37",
-				"PublishReference":   "tid_unique_reference",
+				"publishedDate":      "2017-04-10T08:03:58.000Z",
+				"lastModified":       "2017-04-10T08:09:01.808Z",
+				"firstPublishedDate": "2017-04-10T08:03:58.000Z",
+				"mediaType":          "mediaType",
+				"markedDeleted":      false,
+				"byline":             "FT Reporters",
+				"standfirst":         "A simple line with an article summary",
+				"description":        "descr",
+				"mainImage":          "2934de46-5240-4c7d-8576-f12ae12e4a37",
+				"publishReference":   "tid_unique_reference",
 			},
 			[]Annotation{
 				{
@@ -96,24 +96,24 @@ func TestGetCombinedModelForContent(t *testing.T) {
 				UUID: "622de808-3a7a-49bd-a7fb-2a33f64695be",
 				Content: ContentModel{
 					"uuid":  "622de808-3a7a-49bd-a7fb-2a33f64695be",
-					"Title": "Title",
-					"Body":  "<body>something relevant here</body>",
-					"Identifiers": []Identifier{
+					"title": "Title",
+					"body":  "<body>something relevant here</body>",
+					"identifiers": []Identifier{
 						{
 							Authority:       "FTCOM-METHODE_identifier",
 							IdentifierValue: "53217c65-ecef-426e-a3ac-3787e2e62e87",
 						},
 					},
-					"PublishedDate":      "2017-04-10T08:03:58.000Z",
-					"LastModified":       "2017-04-10T08:09:01.808Z",
-					"FirstPublishedDate": "2017-04-10T08:03:58.000Z",
-					"MediaType":          "mediaType",
-					"MarkedDeleted":      false,
-					"Byline":             "FT Reporters",
-					"Standfirst":         "A simple line with an article summary",
-					"Description":        "descr",
-					"MainImage":          "2934de46-5240-4c7d-8576-f12ae12e4a37",
-					"PublishReference":   "tid_unique_reference",
+					"publishedDate":      "2017-04-10T08:03:58.000Z",
+					"lastModified":       "2017-04-10T08:09:01.808Z",
+					"firstPublishedDate": "2017-04-10T08:03:58.000Z",
+					"mediaType":          "mediaType",
+					"markedDeleted":      false,
+					"byline":             "FT Reporters",
+					"standfirst":         "A simple line with an article summary",
+					"description":        "descr",
+					"mainImage":          "2934de46-5240-4c7d-8576-f12ae12e4a37",
+					"publishReference":   "tid_unique_reference",
 				},
 				Metadata: []Annotation{
 					{
@@ -208,8 +208,8 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 			Annotations{UUID: "some_uuid"},
 			ContentModel{
 				"uuid":  "some_uuid",
-				"Title": "title",
-				"Body":  "body",
+				"title": "title",
+				"body":  "body",
 			},
 			nil,
 			[]Annotation{
@@ -233,8 +233,8 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 				UUID: "some_uuid",
 				Content: ContentModel{
 					"uuid":  "some_uuid",
-					"Title": "title",
-					"Body":  "body",
+					"title": "title",
+					"body":  "body",
 				},
 				Metadata: []Annotation{
 					{Thing{
@@ -259,10 +259,10 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 			Annotations{UUID: "some_uuid"},
 			ContentModel{
 				"uuid":  "some_uuid",
-				"Title": "title",
-				"Body":  "body",
-				"Type":  "Video",
-				"Identifiers": []Identifier{
+				"title": "title",
+				"body":  "body",
+				"type":  "Video",
+				"identifiers": []Identifier{
 					{
 						Authority:       "http://api.ft.com/system/NEXT-VIDEO-EDITOR",
 						IdentifierValue: "some_uuid",
@@ -291,10 +291,10 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 				UUID: "some_uuid",
 				Content: ContentModel{
 					"uuid":  "some_uuid",
-					"Title": "title",
-					"Body":  "body",
-					"Type":  "Video",
-					"Identifiers": []Identifier{
+					"title": "title",
+					"body":  "body",
+					"type":  "Video",
+					"identifiers": []Identifier{
 						{
 							Authority:       "http://api.ft.com/system/NEXT-VIDEO-EDITOR",
 							IdentifierValue: "some_uuid",

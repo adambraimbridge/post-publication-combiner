@@ -3,14 +3,15 @@ package processor
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
+	"reflect"
+	"strings"
+
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/Sirupsen/logrus"
 	"github.com/dchest/uniuri"
-	"net/http"
-	"reflect"
-	"strings"
 )
 
 const (
@@ -142,6 +143,12 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 		return
 	}
 
+	// @TODO berni - why this was moved after the following block???
+	if cm.ContentModel.getUUID() == "" {
+		logrus.Errorf("UUID not found after message marshalling, skipping message with TID=%v.", tid)
+		return
+	}
+
 	//combine data
 	combinedMSG, err := p.DataCombiner.GetCombinedModelForContent(cm.ContentModel, getPlatformVersion(cm.ContentURI))
 	if err != nil {
@@ -155,12 +162,6 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 		sl := strings.Split(cm.ContentURI, "/")
 		combinedMSG.UUID = sl[len(sl)-1]
 		combinedMSG.MarkedDeleted = true
-	}
-
-	// todo: ???
-	if combinedMSG.UUID == "" {
-		logrus.Errorf("UUID not found after message marshalling, skipping message with TID=%v.", tid)
-		return
 	}
 
 	//forward data

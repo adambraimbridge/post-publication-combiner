@@ -3,6 +3,7 @@ package processor
 import (
 	"encoding/json"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/Financial-Times/message-queue-go-producer/producer"
@@ -110,7 +111,7 @@ func TestProcessContentMsg_Forwarder_Errors(t *testing.T) {
 		data: CombinedModel{
 			UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
 			Content: ContentModel{
-				"Type": "Article",
+				"type": "Article",
 			},
 		},
 	}
@@ -142,16 +143,18 @@ func TestProcessContentMsg_Successfully_Forwarded(t *testing.T) {
 		data: CombinedModel{
 			UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
 			Content: ContentModel{
-				"UUID":  "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-				"Title": "simple title",
-				"Type":  "Article",
+				"uuid":  "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+				"title": "simple title",
+				"type":  "Article",
 			},
 		},
 	}
 
 	expMsg := producer.Message{
 		Headers: m.Headers,
-		Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","content":{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","title":"simple title","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":"Article"},"metadata":null}`,
+		Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","content":{"title":"simple title","type":"Article","uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b"},"metadata":null,"contentUri":"","lastModified":"","markedDeleted":false}`,
+		// @TODO berni - this is the old expected body. I've changed the expected one, but this is ok? There are expectactions regarding the existing of fields, even if these are empty or nil??
+		// Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","content":{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","title":"simple title","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":"Article"},"metadata":null}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
@@ -179,8 +182,8 @@ func TestProcessContentMsg_DeleteEvent_Successfully_Forwarded(t *testing.T) {
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris, SupportedContentTypes: allowedContentTypes}
 	combiner := DummyDataCombiner{data: CombinedModel{
 		UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-		Content: ContentModel{"UUID": "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-			"MarkedDeleted": true}}}
+		Content: ContentModel{"uuid": "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+			"markedDeleted": true}}}
 
 	expMsg := producer.Message{
 		Headers: m.Headers,
@@ -303,7 +306,7 @@ func TestProcessMetadataMsg_Successfully_Forwarded(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: ContentModel{"UUID": "some_uuid", "Title": "simple title", "Type": "Article"},
+			Content: ContentModel{"uuid": "some_uuid", "title": "simple title", "type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -355,7 +358,7 @@ func TestForceMessageWithTID(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: ContentModel{"UUID": "some_uuid", "Title": "simple title", "Type": "Article"},
+			Content: ContentModel{"uuid": "some_uuid", "title": "simple title", "type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -409,7 +412,7 @@ func TestForceMessageWithoutTID(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: ContentModel{"UUID": "some_uuid", "Title": "simple title", "Type": "Article"},
+			Content: ContentModel{"uuid": "some_uuid", "title": "simple title", "type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -502,7 +505,7 @@ func TestForceMessageFilteredError(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "80fb3e57-8d3b-4f07-bbb6-8788452d63cb",
-			Content: ContentModel{"UUID": "80fb3e57-8d3b-4f07-bbb6-8788452d63cb", "Title": "simple title", "Type": "Content"},
+			Content: ContentModel{"uuid": "80fb3e57-8d3b-4f07-bbb6-8788452d63cb", "title": "simple title", "type": "Content"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -550,7 +553,7 @@ func TestForceMessageProducerError(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: ContentModel{"UUID": "some_uuid", "Title": "simple title", "Type": "Article"},
+			Content: ContentModel{"uuid": "some_uuid", "title": "simple title", "type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -603,7 +606,7 @@ func TestForwardMsg(t *testing.T) {
 				"X-Request-Id": "some-tid1",
 			},
 			uuid: "uuid1",
-			body: `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":""},"metadata":null}`,
+			body: `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":""},"metadata":null,"contentUri":"","lastModified":"","markedDeleted":false}`,
 			err:  nil,
 		},
 		{
@@ -758,10 +761,36 @@ func (p DummyMsgProducer) SendMessage(uuid string, m producer.Message) error {
 	if p.expTID != "" {
 		assert.Equal(p.t, p.expTID, m.Headers["X-Request-Id"])
 	}
+
+	fmt.Println(p.expMsg)
+	fmt.Println(m)
 	assert.NotEmpty(p.t, m.Headers["X-Request-Id"])
 	assert.Equal(p.t, p.expMsg, m)
 
+	// USE THIS FOR BETTER JSON COMPARISON
+	// eql, err := AreEqualJSON(p.expMsg.Body, m.Body)
+	// assert.Nil(p.t, err)
+	// assert.True(p.t, eql)
+	// assert.Equal(p.t, p.ex)
+
 	return nil
+}
+
+func AreEqualJSON(s1, s2 string) (bool, error) {
+	var o1 interface{}
+	var o2 interface{}
+
+	var err error
+	err = json.Unmarshal([]byte(s1), &o1)
+	if err != nil {
+		return false, fmt.Errorf("Error mashalling string 1 :: %s", err.Error())
+	}
+	err = json.Unmarshal([]byte(s2), &o2)
+	if err != nil {
+		return false, fmt.Errorf("Error mashalling string 2 :: %s", err.Error())
+	}
+
+	return reflect.DeepEqual(o1, o2), nil
 }
 
 func (p DummyMsgProducer) ConnectivityCheck() (string, error) {
