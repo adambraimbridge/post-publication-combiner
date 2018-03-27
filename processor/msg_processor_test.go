@@ -3,13 +3,15 @@ package processor
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"reflect"
+	"testing"
+
+	testLogger "github.com/Financial-Times/go-logger/test"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	"github.com/Sirupsen/logrus"
-	testLogger "github.com/Sirupsen/logrus/hooks/test"
-	"github.com/golang/go/src/pkg/fmt"
+
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestProcessContentMsg_Unmarshall_Error(t *testing.T) {
@@ -19,14 +21,14 @@ func TestProcessContentMsg_Unmarshall_Error(t *testing.T) {
 		Body:    `body`,
 	}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	p := &MsgProcessor{}
 	p.processContentMsg(m)
 
-	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
+	assert.Equal(t, "error", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, "Could not unmarshall message with TID=")
 	assert.Equal(t, 1, len(hook.Entries))
 
@@ -42,13 +44,13 @@ func TestProcessContentMsg_UnSupportedContent(t *testing.T) {
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
 	p := &MsgProcessor{config: config}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	p.processContentMsg(m)
 
-	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
+	assert.Equal(t, "info", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Skipped unsupported content with contentUri: %v.", m.Headers["X-Request-Id"], "http://unsupported-content-uri/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b"))
 	assert.Equal(t, 1, len(hook.Entries))
 }
@@ -63,13 +65,13 @@ func TestProcessContentMsg_SupportedContent_EmptyUUID(t *testing.T) {
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
 	p := &MsgProcessor{config: config}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	p.processContentMsg(m)
 
-	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
+	assert.Equal(t, "error", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("UUID not found after message marshalling, skipping message with TID=%v.", m.Headers["X-Request-Id"]))
 	assert.Equal(t, 1, len(hook.Entries))
 }
@@ -85,13 +87,13 @@ func TestProcessContentMsg_Combiner_Errors(t *testing.T) {
 	combiner := DummyDataCombiner{err: errors.New("some error")}
 	p := &MsgProcessor{config: config, DataCombiner: combiner}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	p.processContentMsg(m)
 
-	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
+	assert.Equal(t, "error", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped. %v", m.Headers["X-Request-Id"], combiner.err.Error()))
 	assert.Equal(t, 1, len(hook.Entries))
 }
@@ -105,18 +107,25 @@ func TestProcessContentMsg_Forwarder_Errors(t *testing.T) {
 	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris, SupportedContentTypes: allowedContentTypes}
-	combiner := DummyDataCombiner{data: CombinedModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b", Content: ContentModel{Type: "Article"}}}
+	combiner := DummyDataCombiner{
+		data: CombinedModel{
+			UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+			Content: ContentModel{
+				"type": "Article",
+			},
+		},
+	}
 	producer := DummyMsgProducer{t: t, expError: errors.New("some producer error")}
 
 	p := &MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	p.processContentMsg(m)
 
-	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
+	assert.Equal(t, "error", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Error sending transformed message to queue: %v", m.Headers["X-Request-Id"], producer.expError.Error()))
 	assert.Equal(t, 1, len(hook.Entries))
 }
@@ -130,23 +139,34 @@ func TestProcessContentMsg_Successfully_Forwarded(t *testing.T) {
 	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris, SupportedContentTypes: allowedContentTypes}
-	combiner := DummyDataCombiner{data: CombinedModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b", Content: ContentModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b", Title: "simple title", Type: "Article"}}}
+	combiner := DummyDataCombiner{
+		data: CombinedModel{
+			UUID:          "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+			MarkedDeleted: false,
+			LastModified:  "2017-03-30T13:09:06.48Z",
+			Content: ContentModel{
+				"uuid":  "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+				"title": "simple title",
+				"type":  "Article",
+			},
+		},
+	}
 
 	expMsg := producer.Message{
 		Headers: m.Headers,
-		Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","content":{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","title":"simple title","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":"Article"},"metadata":null}`,
+		Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","content":{"title":"simple title","type":"Article","uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b"},"metadata":null,"contentUri":"","lastModified":"2017-03-30T13:09:06.48Z","markedDeleted":false}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
 	p := &MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	p.processContentMsg(m)
 
-	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
+	assert.Equal(t, "info", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Mapped and sent for uuid: %v", m.Headers["X-Request-Id"], combiner.data.UUID))
 	assert.Equal(t, 1, len(hook.Entries))
 }
@@ -161,25 +181,28 @@ func TestProcessContentMsg_DeleteEvent_Successfully_Forwarded(t *testing.T) {
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris, SupportedContentTypes: allowedContentTypes}
 	combiner := DummyDataCombiner{data: CombinedModel{
-		UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-		Content: ContentModel{UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-			MarkedDeleted: true}}}
+		UUID:          "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+		Content:       ContentModel{},
+		ContentURI:    "http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+		MarkedDeleted: true,
+		LastModified:  "2017-03-30T13:09:06.48Z",
+	}}
 
 	expMsg := producer.Message{
 		Headers: m.Headers,
-		Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","content":{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":true,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":""},"metadata":null}`,
+		Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","markedDeleted":true,"lastModified":"2017-03-30T13:09:06.48Z","content":null,"metadata":null}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
-	p := &MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
+	p := MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	p.processContentMsg(m)
 
-	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
+	assert.Equal(t, "info", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Mapped and sent for uuid: %v", m.Headers["X-Request-Id"], combiner.data.UUID))
 	assert.Equal(t, 1, len(hook.Entries))
 }
@@ -194,13 +217,13 @@ func TestProcessMetadataMsg_UnSupportedOrigins(t *testing.T) {
 	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins}
 	p := &MsgProcessor{config: config}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	p.processMetadataMsg(m)
 
-	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
+	assert.Equal(t, "info", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Skipped unsupported annotations with Origin-System-Id: %v. ", m.Headers["X-Request-Id"], m.Headers["Origin-System-Id"]))
 	assert.Equal(t, 1, len(hook.Entries))
 }
@@ -215,13 +238,13 @@ func TestProcessMetadataMsg_SupportedOrigin_Unmarshall_Error(t *testing.T) {
 	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins}
 	p := &MsgProcessor{config: config}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	p.processMetadataMsg(m)
 
-	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
+	assert.Equal(t, "error", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("Could not unmarshall message with TID=%v, error=", m.Headers["X-Request-Id"]))
 	assert.Equal(t, 1, len(hook.Entries))
 }
@@ -237,13 +260,13 @@ func TestProcessMetadataMsg_Combiner_Errors(t *testing.T) {
 	combiner := DummyDataCombiner{err: errors.New("some error")}
 	p := &MsgProcessor{config: config, DataCombiner: combiner}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	p.processMetadataMsg(m)
 
-	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
+	assert.Equal(t, "error", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Error obtaining the combined message. Content couldn't get read. Message will be skipped.", m.Headers["X-Request-Id"]))
 	assert.Equal(t, 1, len(hook.Entries))
 }
@@ -262,13 +285,13 @@ func TestProcessMetadataMsg_Forwarder_Errors(t *testing.T) {
 
 	p := &MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	p.processMetadataMsg(m)
 
-	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
+	assert.Equal(t, "error", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Error sending transformed message to queue:", m.Headers["X-Request-Id"]))
 	assert.Equal(t, 1, len(hook.Entries))
 }
@@ -286,7 +309,7 @@ func TestProcessMetadataMsg_Successfully_Forwarded(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
+			Content: ContentModel{"uuid": "some_uuid", "title": "simple title", "type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -312,19 +335,19 @@ func TestProcessMetadataMsg_Successfully_Forwarded(t *testing.T) {
 		}}
 	expMsg := producer.Message{
 		Headers: m.Headers,
-		Body:    `{"uuid":"some_uuid","content":{"uuid":"some_uuid","title":"simple title","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","leiCode":"leicode_id_1","factsetID":"factset-id1","tmeIDs":["tme_id1"],"uuids":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"platformVersion":"v1"}}]}`,
+		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":false,"content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","leiCode":"leicode_id_1","factsetID":"factset-id1","tmeIDs":["tme_id1"],"uuids":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"platformVersion":"v1"}}]}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
 	p := &MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	p.processMetadataMsg(m)
 
-	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
+	assert.Equal(t, "info", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Mapped and sent for uuid: %v", m.Headers["X-Request-Id"], combiner.data.UUID))
 	assert.Equal(t, 1, len(hook.Entries))
 }
@@ -338,7 +361,7 @@ func TestForceMessageWithTID(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
+			Content: ContentModel{"uuid": "some_uuid", "title": "simple title", "type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -365,20 +388,20 @@ func TestForceMessageWithTID(t *testing.T) {
 	tid := "transaction_id_1"
 	expMsg := producer.Message{
 		Headers: map[string]string{"Message-Type": "cms-combined-content-published", "X-Request-Id": tid, "Origin-System-Id": "force-publish"},
-		Body:    `{"uuid":"some_uuid","content":{"uuid":"some_uuid","title":"simple title","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","leiCode":"leicode_id_1","factsetID":"factset-id1","tmeIDs":["tme_id1"],"uuids":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"platformVersion":"v1"}}]}`,
+		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":false,"content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","leiCode":"leicode_id_1","factsetID":"factset-id1","tmeIDs":["tme_id1"],"uuids":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"platformVersion":"v1"}}]}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expTID: tid, expMsg: expMsg}
 	p := &MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	err := p.ForceMessagePublish(combiner.data.UUID, tid)
 	assert.NoError(t, err)
 
-	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
+	assert.Equal(t, "info", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Mapped and sent for uuid: %v", expMsg.Headers["X-Request-Id"], combiner.data.UUID))
 	assert.Equal(t, 1, len(hook.Entries))
 }
@@ -392,7 +415,7 @@ func TestForceMessageWithoutTID(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
+			Content: ContentModel{"uuid": "some_uuid", "title": "simple title", "type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -420,20 +443,20 @@ func TestForceMessageWithoutTID(t *testing.T) {
 	emptyTID := ""
 	expMsg := producer.Message{
 		Headers: map[string]string{"Message-Type": "cms-combined-content-published", "X-Request-Id": "[ignore]", "Origin-System-Id": "force-publish"},
-		Body:    `{"uuid":"some_uuid","content":{"uuid":"some_uuid","title":"simple title","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","leiCode":"leicode_id_1","factsetID":"factset-id1","tmeIDs":["tme_id1"],"uuids":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"platformVersion":"v1"}}]}`,
+		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":false,"content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","leiCode":"leicode_id_1","factsetID":"factset-id1","tmeIDs":["tme_id1"],"uuids":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"platformVersion":"v1"}}]}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
 	p := &MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	err := p.ForceMessagePublish(combiner.data.UUID, emptyTID)
 	assert.NoError(t, err)
 
-	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
+	assert.Equal(t, "info", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Mapped and sent for uuid: %v", expMsg.Headers["X-Request-Id"], combiner.data.UUID))
 	assert.Equal(t, 2, len(hook.Entries))
 }
@@ -445,14 +468,14 @@ func TestForceMessageCombinerError(t *testing.T) {
 	combiner := DummyDataCombiner{err: errors.New("some error")}
 	p := &MsgProcessor{config: config, DataCombiner: combiner}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	err := p.ForceMessagePublish(combiner.data.UUID, "")
 	assert.Equal(t, combiner.err, err)
 
-	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
+	assert.Equal(t, "error", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, "Error obtaining the combined message, it will be skipped. some error")
 	assert.Equal(t, 2, len(hook.Entries))
 }
@@ -464,7 +487,7 @@ func TestForceMessageNotFoundError(t *testing.T) {
 	combiner := DummyDataCombiner{}
 	p := &MsgProcessor{config: config, DataCombiner: combiner}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
@@ -472,7 +495,7 @@ func TestForceMessageNotFoundError(t *testing.T) {
 	err := p.ForceMessagePublish(uuid, "")
 	assert.Equal(t, NotFoundError, err)
 
-	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
+	assert.Equal(t, "error", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("Could not find content with uuid %s. Content not found", uuid))
 	assert.Equal(t, 2, len(hook.Entries))
 }
@@ -485,7 +508,7 @@ func TestForceMessageFilteredError(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "80fb3e57-8d3b-4f07-bbb6-8788452d63cb",
-			Content: ContentModel{UUID: "80fb3e57-8d3b-4f07-bbb6-8788452d63cb", Title: "simple title", Type: "Content"},
+			Content: ContentModel{"uuid": "80fb3e57-8d3b-4f07-bbb6-8788452d63cb", "title": "simple title", "type": "Content"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -511,7 +534,7 @@ func TestForceMessageFilteredError(t *testing.T) {
 		}}
 	p := &MsgProcessor{config: config, DataCombiner: combiner}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
@@ -519,7 +542,7 @@ func TestForceMessageFilteredError(t *testing.T) {
 	err := p.ForceMessagePublish(uuid, "")
 	assert.Equal(t, InvalidContentTypeError, err)
 
-	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
+	assert.Equal(t, "info", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, "Skipped unsupported content with type: Content")
 	assert.Equal(t, 2, len(hook.Entries))
 }
@@ -533,7 +556,7 @@ func TestForceMessageProducerError(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:    "some_uuid",
-			Content: ContentModel{UUID: "some_uuid", Title: "simple title", Type: "Article"},
+			Content: ContentModel{"uuid": "some_uuid", "title": "simple title", "type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -561,14 +584,14 @@ func TestForceMessageProducerError(t *testing.T) {
 	producer := DummyMsgProducer{t: t, expError: errors.New("some error")}
 	p := &MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
 
-	hook := testLogger.NewGlobal()
+	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
 	err := p.ForceMessagePublish(combiner.data.UUID, "")
 	assert.Equal(t, producer.expError, err)
 
-	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
+	assert.Equal(t, "error", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, "Error sending transformed message to queue: some error")
 	assert.Equal(t, 2, len(hook.Entries))
 }
@@ -586,7 +609,7 @@ func TestForwardMsg(t *testing.T) {
 				"X-Request-Id": "some-tid1",
 			},
 			uuid: "uuid1",
-			body: `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":""},"metadata":null}`,
+			body: `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":""},"metadata":null,"contentUri":"","lastModified":"","markedDeleted":false}`,
 			err:  nil,
 		},
 		{
@@ -741,8 +764,10 @@ func (p DummyMsgProducer) SendMessage(uuid string, m producer.Message) error {
 	if p.expTID != "" {
 		assert.Equal(p.t, p.expTID, m.Headers["X-Request-Id"])
 	}
+
 	assert.NotEmpty(p.t, m.Headers["X-Request-Id"])
-	assert.Equal(p.t, p.expMsg, m)
+	assert.True(p.t, reflect.DeepEqual(p.expMsg.Headers, m.Headers), "Expected: %v \nActual: %v", p.expMsg.Headers, m.Headers)
+	assert.JSONEq(p.t, p.expMsg.Body, m.Body, "Expected: %v \nActual: %v", p.expMsg.Body, m.Body)
 
 	return nil
 }

@@ -2,14 +2,15 @@ package processor
 
 import (
 	"errors"
-	"github.com/Financial-Times/post-publication-combiner/utils"
-	"github.com/golang/go/src/pkg/fmt"
-	"github.com/stretchr/testify/assert"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/Financial-Times/post-publication-combiner/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetCombinedModelForContent(t *testing.T) {
@@ -30,7 +31,7 @@ func TestGetCombinedModelForContent(t *testing.T) {
 		},
 		{
 			ContentModel{
-				UUID: "some uuid",
+				"uuid": "some uuid",
 			},
 			[]Annotation{},
 			errors.New("some error"),
@@ -39,7 +40,7 @@ func TestGetCombinedModelForContent(t *testing.T) {
 		},
 		{
 			ContentModel{
-				UUID: "some uuid",
+				"uuid": "some uuid",
 			},
 			[]Annotation{},
 			errors.New("Could not unmarshall annotations for content with uuid"),
@@ -48,25 +49,25 @@ func TestGetCombinedModelForContent(t *testing.T) {
 		},
 		{
 			ContentModel{
-				UUID:  "622de808-3a7a-49bd-a7fb-2a33f64695be",
-				Title: "Title",
-				Body:  "<body>something relevant here</body>",
-				Identifiers: []Identifier{
+				"uuid":  "622de808-3a7a-49bd-a7fb-2a33f64695be",
+				"title": "Title",
+				"body":  "<body>something relevant here</body>",
+				"identifiers": []Identifier{
 					{
 						Authority:       "FTCOM-METHODE_identifier",
 						IdentifierValue: "53217c65-ecef-426e-a3ac-3787e2e62e87",
 					},
 				},
-				PublishedDate:      "2017-04-10T08:03:58.000Z",
-				LastModified:       "2017-04-10T08:09:01.808Z",
-				FirstPublishedDate: "2017-04-10T08:03:58.000Z",
-				MediaType:          "mediaType",
-				MarkedDeleted:      false,
-				Byline:             "FT Reporters",
-				Standfirst:         "A simple line with an article summary",
-				Description:        "descr",
-				MainImage:          "2934de46-5240-4c7d-8576-f12ae12e4a37",
-				PublishReference:   "tid_unique_reference",
+				"publishedDate":      "2017-04-10T08:03:58.000Z",
+				"lastModified":       "2017-04-10T08:09:01.808Z",
+				"firstPublishedDate": "2017-04-10T08:03:58.000Z",
+				"mediaType":          "mediaType",
+				"markedDeleted":      false,
+				"byline":             "FT Reporters",
+				"standfirst":         "A simple line with an article summary",
+				"description":        "descr",
+				"mainImage":          "2934de46-5240-4c7d-8576-f12ae12e4a37",
+				"publishReference":   "tid_unique_reference",
 			},
 			[]Annotation{
 				{
@@ -94,25 +95,25 @@ func TestGetCombinedModelForContent(t *testing.T) {
 			CombinedModel{
 				UUID: "622de808-3a7a-49bd-a7fb-2a33f64695be",
 				Content: ContentModel{
-					UUID:  "622de808-3a7a-49bd-a7fb-2a33f64695be",
-					Title: "Title",
-					Body:  "<body>something relevant here</body>",
-					Identifiers: []Identifier{
+					"uuid":  "622de808-3a7a-49bd-a7fb-2a33f64695be",
+					"title": "Title",
+					"body":  "<body>something relevant here</body>",
+					"identifiers": []Identifier{
 						{
 							Authority:       "FTCOM-METHODE_identifier",
 							IdentifierValue: "53217c65-ecef-426e-a3ac-3787e2e62e87",
 						},
 					},
-					PublishedDate:      "2017-04-10T08:03:58.000Z",
-					LastModified:       "2017-04-10T08:09:01.808Z",
-					FirstPublishedDate: "2017-04-10T08:03:58.000Z",
-					MediaType:          "mediaType",
-					MarkedDeleted:      false,
-					Byline:             "FT Reporters",
-					Standfirst:         "A simple line with an article summary",
-					Description:        "descr",
-					MainImage:          "2934de46-5240-4c7d-8576-f12ae12e4a37",
-					PublishReference:   "tid_unique_reference",
+					"publishedDate":      "2017-04-10T08:03:58.000Z",
+					"lastModified":       "2017-04-10T08:09:01.808Z",
+					"firstPublishedDate": "2017-04-10T08:03:58.000Z",
+					"mediaType":          "mediaType",
+					"markedDeleted":      false,
+					"byline":             "FT Reporters",
+					"standfirst":         "A simple line with an article summary",
+					"description":        "descr",
+					"mainImage":          "2934de46-5240-4c7d-8576-f12ae12e4a37",
+					"publishReference":   "tid_unique_reference",
 				},
 				Metadata: []Annotation{
 					{
@@ -136,6 +137,7 @@ func TestGetCombinedModelForContent(t *testing.T) {
 						},
 					},
 				},
+				LastModified: "2017-04-10T08:09:01.808Z",
 			},
 			nil,
 		},
@@ -146,7 +148,7 @@ func TestGetCombinedModelForContent(t *testing.T) {
 			MetadataRetriever: DummyMetadataRetriever{testCase.retrievedAnn, testCase.retrievedErr},
 		}
 		m, err := combiner.GetCombinedModelForContent(testCase.contentModel, "some_platform_version")
-		assert.Equal(t, testCase.expModel, m,
+		assert.True(t, reflect.DeepEqual(testCase.expModel, m),
 			fmt.Sprintf("Expected model: %v was not equal with the received one: %v \n", testCase.expModel, m))
 		if testCase.expError == nil {
 			assert.Equal(t, nil, err)
@@ -206,9 +208,9 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 		{
 			Annotations{UUID: "some_uuid"},
 			ContentModel{
-				UUID:  "some_uuid",
-				Title: "title",
-				Body:  "body",
+				"uuid":  "some_uuid",
+				"title": "title",
+				"body":  "body",
 			},
 			nil,
 			[]Annotation{
@@ -231,9 +233,9 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 			CombinedModel{
 				UUID: "some_uuid",
 				Content: ContentModel{
-					UUID:  "some_uuid",
-					Title: "title",
-					Body:  "body",
+					"uuid":  "some_uuid",
+					"title": "title",
+					"body":  "body",
 				},
 				Metadata: []Annotation{
 					{Thing{
@@ -257,11 +259,11 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 		{
 			Annotations{UUID: "some_uuid"},
 			ContentModel{
-				UUID:  "some_uuid",
-				Title: "title",
-				Body:  "body",
-				Type:  "Video",
-				Identifiers: []Identifier{
+				"uuid":  "some_uuid",
+				"title": "title",
+				"body":  "body",
+				"type":  "Video",
+				"identifiers": []Identifier{
 					{
 						Authority:       "http://api.ft.com/system/NEXT-VIDEO-EDITOR",
 						IdentifierValue: "some_uuid",
@@ -289,11 +291,11 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 			CombinedModel{
 				UUID: "some_uuid",
 				Content: ContentModel{
-					UUID:  "some_uuid",
-					Title: "title",
-					Body:  "body",
-					Type:  "Video",
-					Identifiers: []Identifier{
+					"uuid":  "some_uuid",
+					"title": "title",
+					"body":  "body",
+					"type":  "Video",
+					"identifiers": []Identifier{
 						{
 							Authority:       "http://api.ft.com/system/NEXT-VIDEO-EDITOR",
 							IdentifierValue: "some_uuid",
@@ -468,7 +470,7 @@ func TestGetContent(t *testing.T) {
 			dummyClient{
 				statusCode: http.StatusNotFound,
 			},
-			ContentModel{},
+			nil,
 			nil,
 		},
 		{
@@ -477,7 +479,7 @@ func TestGetContent(t *testing.T) {
 			dummyClient{
 				err: errors.New("some error"),
 			},
-			ContentModel{},
+			nil,
 			errors.New("some error"),
 		},
 		{
@@ -487,7 +489,7 @@ func TestGetContent(t *testing.T) {
 				statusCode: http.StatusOK,
 				body:       "text that can't be unmarshalled",
 			},
-			ContentModel{},
+			nil,
 			errors.New("Could not unmarshall content with uuid=some_uuid"),
 		},
 		{
@@ -498,25 +500,51 @@ func TestGetContent(t *testing.T) {
 				body:       `{"uuid":"622de808-3a7a-49bd-a7fb-2a33f64695be","title":"Title","alternativeTitles":{"promotionalTitle":"Alternative title"},"type":null,"byline":"FT Reporters","brands":[{"id":"http://api.ft.com/things/40f636a3-5507-4311-9629-95376007cb7b"}],"identifiers":[{"authority":"FTCOM-METHODE_identifier","identifierValue":"53217c65-ecef-426e-a3ac-3787e2e62e87"}],"publishedDate":"2017-04-10T08:03:58.000Z","standfirst":"A simple line with an article summary","body":"<body>something relevant here<\/body>","description":null,"mediaType":null,"pixelWidth":null,"pixelHeight":null,"internalBinaryUrl":null,"externalBinaryUrl":null,"members":null,"mainImage":"2934de46-5240-4c7d-8576-f12ae12e4a37","standout":{"editorsChoice":false,"exclusive":false,"scoop":false},"comments":{"enabled":true},"copyright":null,"webUrl":null,"publishReference":"tid_unique_reference","lastModified":"2017-04-10T08:09:01.808Z","canBeSyndicated":"yes","firstPublishedDate":"2017-04-10T08:03:58.000Z","accessLevel":"subscribed","canBeDistributed":"yes"}`,
 			},
 			ContentModel{
-				UUID:  "622de808-3a7a-49bd-a7fb-2a33f64695be",
-				Title: "Title",
-				Body:  "<body>something relevant here</body>",
-				Identifiers: []Identifier{
-					{
-						Authority:       "FTCOM-METHODE_identifier",
-						IdentifierValue: "53217c65-ecef-426e-a3ac-3787e2e62e87",
+				"uuid":  "622de808-3a7a-49bd-a7fb-2a33f64695be",
+				"title": "Title",
+				"alternativeTitles": map[string]interface{}{
+					"promotionalTitle": "Alternative title",
+				},
+				"type":   nil,
+				"byline": "FT Reporters",
+				"brands": []interface{}{
+					map[string]interface{}{
+						"id": "http://api.ft.com/things/40f636a3-5507-4311-9629-95376007cb7b",
 					},
 				},
-				PublishedDate:      "2017-04-10T08:03:58.000Z",
-				LastModified:       "2017-04-10T08:09:01.808Z",
-				FirstPublishedDate: "2017-04-10T08:03:58.000Z",
-				MediaType:          "",
-				MarkedDeleted:      false,
-				Byline:             "FT Reporters",
-				Standfirst:         "A simple line with an article summary",
-				Description:        "",
-				MainImage:          "2934de46-5240-4c7d-8576-f12ae12e4a37",
-				PublishReference:   "tid_unique_reference",
+				"identifiers": []interface{}{
+					map[string]interface{}{
+						"authority":       "FTCOM-METHODE_identifier",
+						"identifierValue": "53217c65-ecef-426e-a3ac-3787e2e62e87",
+					},
+				},
+				"publishedDate":     "2017-04-10T08:03:58.000Z",
+				"standfirst":        "A simple line with an article summary",
+				"body":              "<body>something relevant here</body>",
+				"description":       nil,
+				"mediaType":         nil,
+				"pixelWidth":        nil,
+				"pixelHeight":       nil,
+				"internalBinaryUrl": nil,
+				"externalBinaryUrl": nil,
+				"members":           nil,
+				"mainImage":         "2934de46-5240-4c7d-8576-f12ae12e4a37",
+				"standout": map[string]interface{}{
+					"editorsChoice": false,
+					"exclusive":     false,
+					"scoop":         false,
+				},
+				"comments": map[string]interface{}{
+					"enabled": true,
+				},
+				"copyright":          nil,
+				"webUrl":             nil,
+				"publishReference":   "tid_unique_reference",
+				"lastModified":       "2017-04-10T08:09:01.808Z",
+				"canBeSyndicated":    "yes",
+				"firstPublishedDate": "2017-04-10T08:03:58.000Z",
+				"accessLevel":        "subscribed",
+				"canBeDistributed":   "yes",
 			},
 			nil,
 		},
@@ -530,7 +558,12 @@ func TestGetContent(t *testing.T) {
 		if testCase.expError == nil {
 			assert.Equal(t, nil, err)
 		} else {
-			assert.Contains(t, err.Error(), testCase.expError.Error())
+			assert.True(t,
+				strings.Contains(
+					err.Error(),
+					testCase.expError.Error()),
+				fmt.Sprintf("'%s' does not contains '%s'", err.Error(), testCase.expError.Error()),
+			)
 		}
 	}
 }
