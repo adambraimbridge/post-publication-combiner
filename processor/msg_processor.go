@@ -13,15 +13,7 @@ import (
 	"github.com/dchest/uniuri"
 )
 
-const (
-	CombinerMessageType = "cms-combined-content-published"
-
-	PlatformV1    = "v1"         // PlatformV1 V1 platform (Falcon)
-	PlatformVideo = "next-video" // PlatformVideo current video platform
-
-	contentTypeVideo = "Video"
-	videoAuthority   = "http://api.ft.com/system/NEXT-VIDEO-EDITOR"
-)
+const CombinerMessageType = "cms-combined-content-published"
 
 var (
 	NotFoundError           = errors.New("Content not found") // used when the content can not be found by the platform
@@ -158,7 +150,7 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 		}
 
 		var err error
-		combinedMSG, err = p.DataCombiner.GetCombinedModelForContent(cm.ContentModel, getPlatformVersion(cm.ContentURI))
+		combinedMSG, err = p.DataCombiner.GetCombinedModelForContent(cm.ContentModel)
 		if err != nil {
 			logger.Errorf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped. %v", tid, err)
 			return
@@ -190,7 +182,7 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 	}
 
 	//combine data
-	combinedMSG, err := p.DataCombiner.GetCombinedModelForAnnotations(ann, getPlatformVersion(h))
+	combinedMSG, err := p.DataCombiner.GetCombinedModelForAnnotations(ann)
 	if err != nil {
 		logger.Errorf("%v - Error obtaining the combined message. Content couldn't get read. Message will be skipped. %v", tid, err)
 		return
@@ -259,11 +251,4 @@ func contains(array []string, element string) bool {
 		}
 	}
 	return false
-}
-
-func getPlatformVersion(str string) string {
-	if strings.Contains(str, "video") {
-		return PlatformVideo
-	}
-	return PlatformV1
 }

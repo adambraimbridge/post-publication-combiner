@@ -12,7 +12,7 @@ Note: one publish event can result in two messages in the CombinedPostPublicatio
 This service depends on the following services:
 - kafka/kafka-proxy
 - document-store-api (/content endpoint)
-- public-annotations-api (/content/{uuid}/annotations/{platformVersion} endpoint)
+- public-annotations-api (/content/{uuid}/annotations endpoint)
 
 ## Installation
 
@@ -80,5 +80,5 @@ Checks if:
 
 ### Logging
 
-* The application uses [logrus](https://github.com/sirupsen/logrus); the log file is initialised in [main.go](main.go).
-* NOTE: `/__build-info` and `/__gtg` endpoints are not logged as they are called every second from varnish/vulcand and this information is not needed in logs/splunk.
+* The application uses the FT [go-logger](https://github.com/Financial-Times/go-logger) library, based on [logrus](https://github.com/sirupsen/logrus).
+* NOTE: `/__build-info` and `/__gtg` endpoints are not logged as they are called frequently.

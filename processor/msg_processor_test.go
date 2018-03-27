@@ -252,7 +252,7 @@ func TestProcessMetadataMsg_SupportedOrigin_Unmarshall_Error(t *testing.T) {
 func TestProcessMetadataMsg_Combiner_Errors(t *testing.T) {
 	m := consumer.Message{
 		Headers: map[string]string{"X-Request-Id": "some-tid1", "Origin-System-Id": "http://cmdb.ft.com/systems/binding-service"},
-		Body:    `{"uuid":"some_uuid","annotations":[{"ID":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","PrefLabel":"Barclays","Types":["http://base-url/core/Thing","http://base-url/concept/Concept"],"Predicate":"http://base-url/about","ApiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","TmeIDs":["tme_id1"],"UUIDs":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"PlatformVersion":"v1"}]}`,
+		Body:    `{"uuid":"some_uuid","annotations":[{"ID":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","PrefLabel":"Barclays","Types":["http://base-url/core/Thing","http://base-url/concept/Concept"],"Predicate":"http://base-url/about","ApiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}]}`,
 	}
 
 	allowedOrigins := []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"}
@@ -274,7 +274,7 @@ func TestProcessMetadataMsg_Combiner_Errors(t *testing.T) {
 func TestProcessMetadataMsg_Forwarder_Errors(t *testing.T) {
 	m := consumer.Message{
 		Headers: map[string]string{"X-Request-Id": "some-tid1", "Origin-System-Id": "http://cmdb.ft.com/systems/binding-service"},
-		Body:    `{"uuid":"some_uuid","annotations":[{"ID":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","PrefLabel":"Barclays","Types":["http://base-url/core/Thing","http://base-url/concept/Concept"],"Predicate":"http://base-url/about","ApiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","TmeIDs":["tme_id1"],"UUIDs":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"PlatformVersion":"v1"}]}`,
+		Body:    `{"uuid":"some_uuid","annotations":[{"ID":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","PrefLabel":"Barclays","Types":["http://base-url/core/Thing","http://base-url/concept/Concept"],"Predicate":"http://base-url/about","ApiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}]}`,
 	}
 
 	allowedOrigins := []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"}
@@ -299,7 +299,7 @@ func TestProcessMetadataMsg_Forwarder_Errors(t *testing.T) {
 func TestProcessMetadataMsg_Successfully_Forwarded(t *testing.T) {
 	m := consumer.Message{
 		Headers: map[string]string{"X-Request-Id": "some-tid1", "Origin-System-Id": "http://cmdb.ft.com/systems/binding-service"},
-		Body:    `{"uuid":"some_uuid","annotations":[{"ID":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","PrefLabel":"Barclays","Types":["http://base-url/core/Thing","http://base-url/concept/Concept"],"Predicate":"http://base-url/about","ApiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","TmeIDs":["tme_id1"],"UUIDs":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"PlatformVersion":"v1"}]}`,
+		Body:    `{"uuid":"some_uuid","annotations":[{"ID":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","PrefLabel":"Barclays","Types":["http://base-url/core/Thing","http://base-url/concept/Concept"],"Predicate":"http://base-url/about","ApiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}]}`,
 	}
 
 	allowedOrigins := []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"}
@@ -323,19 +323,13 @@ func TestProcessMetadataMsg_Successfully_Forwarded(t *testing.T) {
 						},
 						Predicate: "http://base-url/about",
 						ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
-						LeiCode:   "leicode_id_1",
-						FactsetID: "factset-id1",
-						TmeIDs:    []string{"tme_id1"},
-						UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
-							"factset-generated-uuid"},
-						PlatformVersion: "v1",
 					},
 				},
 			},
 		}}
 	expMsg := producer.Message{
 		Headers: m.Headers,
-		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":false,"content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","leiCode":"leicode_id_1","factsetID":"factset-id1","tmeIDs":["tme_id1"],"uuids":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"platformVersion":"v1"}}]}`,
+		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":false,"content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
@@ -375,12 +369,6 @@ func TestForceMessageWithTID(t *testing.T) {
 						},
 						Predicate: "http://base-url/about",
 						ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
-						LeiCode:   "leicode_id_1",
-						FactsetID: "factset-id1",
-						TmeIDs:    []string{"tme_id1"},
-						UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
-							"factset-generated-uuid"},
-						PlatformVersion: "v1",
 					},
 				},
 			},
@@ -388,7 +376,7 @@ func TestForceMessageWithTID(t *testing.T) {
 	tid := "transaction_id_1"
 	expMsg := producer.Message{
 		Headers: map[string]string{"Message-Type": "cms-combined-content-published", "X-Request-Id": tid, "Origin-System-Id": "force-publish"},
-		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":false,"content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","leiCode":"leicode_id_1","factsetID":"factset-id1","tmeIDs":["tme_id1"],"uuids":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"platformVersion":"v1"}}]}`,
+		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":false,"content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expTID: tid, expMsg: expMsg}
@@ -429,12 +417,6 @@ func TestForceMessageWithoutTID(t *testing.T) {
 						},
 						Predicate: "http://base-url/about",
 						ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
-						LeiCode:   "leicode_id_1",
-						FactsetID: "factset-id1",
-						TmeIDs:    []string{"tme_id1"},
-						UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
-							"factset-generated-uuid"},
-						PlatformVersion: "v1",
 					},
 				},
 			},
@@ -443,7 +425,7 @@ func TestForceMessageWithoutTID(t *testing.T) {
 	emptyTID := ""
 	expMsg := producer.Message{
 		Headers: map[string]string{"Message-Type": "cms-combined-content-published", "X-Request-Id": "[ignore]", "Origin-System-Id": "force-publish"},
-		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":false,"content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","leiCode":"leicode_id_1","factsetID":"factset-id1","tmeIDs":["tme_id1"],"uuids":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"platformVersion":"v1"}}]}`,
+		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":false,"content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
@@ -522,12 +504,6 @@ func TestForceMessageFilteredError(t *testing.T) {
 						},
 						Predicate: "http://base-url/about",
 						ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
-						LeiCode:   "leicode_id_1",
-						FactsetID: "factset-id1",
-						TmeIDs:    []string{"tme_id1"},
-						UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
-							"factset-generated-uuid"},
-						PlatformVersion: "v1",
 					},
 				},
 			},
@@ -570,12 +546,6 @@ func TestForceMessageProducerError(t *testing.T) {
 						},
 						Predicate: "http://base-url/about",
 						ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
-						LeiCode:   "leicode_id_1",
-						FactsetID: "factset-id1",
-						TmeIDs:    []string{"tme_id1"},
-						UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
-							"factset-generated-uuid"},
-						PlatformVersion: "v1",
 					},
 				},
 			},
@@ -724,25 +694,6 @@ func TestSupports(t *testing.T) {
 	}
 }
 
-func TestGetPlatformVersion(t *testing.T) {
-	assert := assert.New(t)
-	tests := []struct {
-		inputStr    string
-		expectedStr string
-	}{
-		{"{some-url}/binding-service", "v1"},
-		{"{some-url}/methode-web-pub", "v1"},
-		{"methode-article-mapper", "v1"},
-		{"wordpress-article-mapper", "v1"},
-		{"next-video-mapper", "next-video"},
-	}
-
-	for _, testCase := range tests {
-		pv := getPlatformVersion(testCase.inputStr)
-		assert.Equal(testCase.expectedStr, pv)
-	}
-}
-
 type DummyMsgProducer struct {
 	t        *testing.T
 	expUUID  string
@@ -781,11 +732,11 @@ type DummyDataCombiner struct {
 	err  error
 }
 
-func (c DummyDataCombiner) GetCombinedModelForContent(content ContentModel, platformVersion string) (CombinedModel, error) {
+func (c DummyDataCombiner) GetCombinedModelForContent(content ContentModel) (CombinedModel, error) {
 	return c.data, c.err
 }
 
-func (c DummyDataCombiner) GetCombinedModelForAnnotations(metadata Annotations, platformVersion string) (CombinedModel, error) {
+func (c DummyDataCombiner) GetCombinedModelForAnnotations(metadata Annotations) (CombinedModel, error) {
 	return c.data, c.err
 }
 

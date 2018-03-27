@@ -82,12 +82,6 @@ func TestGetCombinedModelForContent(t *testing.T) {
 						},
 						Predicate: "http://base-url/about",
 						ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
-						LeiCode:   "leicode_id_1",
-						FactsetID: "factset-id1",
-						TmeIDs:    []string{"tme_id1"},
-						UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
-							"factset-generated-uuid"},
-						PlatformVersion: "v1",
 					},
 				},
 			},
@@ -128,12 +122,6 @@ func TestGetCombinedModelForContent(t *testing.T) {
 							},
 							Predicate: "http://base-url/about",
 							ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
-							LeiCode:   "leicode_id_1",
-							FactsetID: "factset-id1",
-							TmeIDs:    []string{"tme_id1"},
-							UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
-								"factset-generated-uuid"},
-							PlatformVersion: "v1",
 						},
 					},
 				},
@@ -147,7 +135,7 @@ func TestGetCombinedModelForContent(t *testing.T) {
 		combiner := DataCombiner{
 			MetadataRetriever: DummyMetadataRetriever{testCase.retrievedAnn, testCase.retrievedErr},
 		}
-		m, err := combiner.GetCombinedModelForContent(testCase.contentModel, "some_platform_version")
+		m, err := combiner.GetCombinedModelForContent(testCase.contentModel)
 		assert.True(t, reflect.DeepEqual(testCase.expModel, m),
 			fmt.Sprintf("Expected model: %v was not equal with the received one: %v \n", testCase.expModel, m))
 		if testCase.expError == nil {
@@ -222,10 +210,6 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 					},
 					Predicate: "http://base-url/about",
 					ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
-					TmeIDs:    []string{"tme_id1"},
-					UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
-						"factset-generated-uuid"},
-					PlatformVersion: "v1",
 				},
 				},
 			},
@@ -246,10 +230,6 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 						},
 						Predicate: "http://base-url/about",
 						ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
-						TmeIDs:    []string{"tme_id1"},
-						UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
-							"factset-generated-uuid"},
-						PlatformVersion: "v1",
 					},
 					},
 				},
@@ -280,10 +260,6 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 					},
 					Predicate: "http://base-url/about",
 					ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
-					TmeIDs:    []string{"tme_id1"},
-					UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
-						"factset-generated-uuid"},
-					PlatformVersion: "next-video",
 				},
 				},
 			},
@@ -311,10 +287,6 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 						},
 						Predicate: "http://base-url/about",
 						ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
-						TmeIDs:    []string{"tme_id1"},
-						UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
-							"factset-generated-uuid"},
-						PlatformVersion: "next-video",
 					},
 					},
 				},
@@ -329,7 +301,7 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 			MetadataRetriever: DummyMetadataRetriever{testCase.retrievedAnn, testCase.retreivedAnnErr},
 		}
 
-		m, err := combiner.GetCombinedModelForAnnotations(testCase.metadata, "some_platform_version")
+		m, err := combiner.GetCombinedModelForAnnotations(testCase.metadata)
 		assert.Equal(t, testCase.expModel, m,
 			fmt.Sprintf("Expected model: %v was not equal with the received one: %v \n", testCase.expModel, m))
 		if testCase.expError == nil {
@@ -382,7 +354,7 @@ func TestGetAnnotations(t *testing.T) {
 			utils.ApiURL{"some_host", "some_endpoint"},
 			dummyClient{
 				statusCode: http.StatusOK,
-				body:       `[{"predicate":"http://base-url/about","id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"leiCode":"leicode_id_1","prefLabel":"Barclays","factsetID":"factset-id1","tmeIDs":["tme_id1"],"uuids":["80bec524-8c75-4d0f-92fa-abce3962d995","factset-generated-uuid"],"platformVersion":"v1"},{"predicate":"http://base-url/isClassifiedBy","id":"http://base-url/271ee5f7-d808-497d-bed3-1b961953dedc","apiUrl":"http://base-url/271ee5f7-d808-497d-bed3-1b961953dedc","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/classification/Classification","http://base-url/Section"],"prefLabel":"Financials","tmeIDs":["tme_id_2"],"uuids":["271ee5f7-d808-497d-bed3-1b961953dedc"],"platformVersion":"v1"},{"predicate":"http://base-url/majorMentions","id":"http://base-url/a19d07d5-dc28-4c33-8745-a96f193df5cd","apiUrl":"http://base-url/a19d07d5-dc28-4c33-8745-a96f193df5cd","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/person/Person"],"prefLabel":"Jes Staley","tmeIDs":["tme_id_3"],"uuids":["a19d07d5-dc28-4c33-8745-a96f193df5cd"],"platformVersion":"v1"}]`,
+				body:       `[{"predicate":"http://base-url/about","id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"prefLabel":"Barclays"},{"predicate":"http://base-url/isClassifiedBy","id":"http://base-url/271ee5f7-d808-497d-bed3-1b961953dedc","apiUrl":"http://base-url/271ee5f7-d808-497d-bed3-1b961953dedc","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/classification/Classification","http://base-url/Section"],"prefLabel":"Financials"},{"predicate":"http://base-url/majorMentions","id":"http://base-url/a19d07d5-dc28-4c33-8745-a96f193df5cd","apiUrl":"http://base-url/a19d07d5-dc28-4c33-8745-a96f193df5cd","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/person/Person"],"prefLabel":"Jes Staley"}]`,
 			},
 			[]Annotation{
 				{
@@ -397,12 +369,6 @@ func TestGetAnnotations(t *testing.T) {
 						},
 						Predicate: "http://base-url/about",
 						ApiUrl:    "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
-						LeiCode:   "leicode_id_1",
-						FactsetID: "factset-id1",
-						TmeIDs:    []string{"tme_id1"},
-						UUIDs: []string{"80bec524-8c75-4d0f-92fa-abce3962d995",
-							"factset-generated-uuid"},
-						PlatformVersion: "v1",
 					},
 				},
 				{
@@ -413,13 +379,8 @@ func TestGetAnnotations(t *testing.T) {
 							"http://base-url/concept/Concept",
 							"http://base-url/classification/Classification",
 							"http://base-url/Section"},
-						Predicate:       "http://base-url/isClassifiedBy",
-						ApiUrl:          "http://base-url/271ee5f7-d808-497d-bed3-1b961953dedc",
-						LeiCode:         "",
-						FactsetID:       "",
-						TmeIDs:          []string{"tme_id_2"},
-						UUIDs:           []string{"271ee5f7-d808-497d-bed3-1b961953dedc"},
-						PlatformVersion: "v1",
+						Predicate: "http://base-url/isClassifiedBy",
+						ApiUrl:    "http://base-url/271ee5f7-d808-497d-bed3-1b961953dedc",
 					},
 				},
 				{
@@ -429,13 +390,8 @@ func TestGetAnnotations(t *testing.T) {
 						Types: []string{"http://base-url/core/Thing",
 							"http://base-url/concept/Concept",
 							"http://base-url/person/Person"},
-						Predicate:       "http://base-url/majorMentions",
-						ApiUrl:          "http://base-url/a19d07d5-dc28-4c33-8745-a96f193df5cd",
-						LeiCode:         "",
-						FactsetID:       "",
-						TmeIDs:          []string{"tme_id_3"},
-						UUIDs:           []string{"a19d07d5-dc28-4c33-8745-a96f193df5cd"},
-						PlatformVersion: "v1",
+						Predicate: "http://base-url/majorMentions",
+						ApiUrl:    "http://base-url/a19d07d5-dc28-4c33-8745-a96f193df5cd",
 					},
 				},
 			},
@@ -445,7 +401,7 @@ func TestGetAnnotations(t *testing.T) {
 
 	for _, testCase := range tests {
 		dr := dataRetriever{testCase.address, testCase.dc}
-		ann, err := dr.getAnnotations(testCase.uuid, "some_platform_version")
+		ann, err := dr.getAnnotations(testCase.uuid)
 		assert.Equal(t, testCase.expAnnotations, ann,
 			fmt.Sprintf("Expected annotations: %v were not equal with received ones: %v \n", testCase.expAnnotations, ann))
 		if testCase.expError == nil {
@@ -598,6 +554,6 @@ type DummyMetadataRetriever struct {
 	err error
 }
 
-func (r DummyMetadataRetriever) getAnnotations(uuid string, platformVersion string) ([]Annotation, error) {
+func (r DummyMetadataRetriever) getAnnotations(uuid string) ([]Annotation, error) {
 	return r.ann, r.err
 }

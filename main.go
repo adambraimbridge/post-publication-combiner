@@ -113,7 +113,7 @@ func main() {
 	})
 	publicAnnotationsAPIEndpoint := app.String(cli.StringOpt{
 		Name:   "publicAnnotationsApiEndpoint",
-		Value:  "/content/{uuid}/annotations/{platformVersion}",
+		Value:  "/content/{uuid}/annotations",
 		Desc:   "The endpoint used for metadata retrieval.",
 		EnvVar: "PUBLIC_ANNOTATIONS_API_ENDPOINT",
 	})

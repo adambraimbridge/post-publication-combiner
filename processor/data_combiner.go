@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"github.com/Financial-Times/post-publication-combiner/utils"
 	"net/http"
-	"strings"
 )
 
 type DataCombinerI interface {
-	GetCombinedModelForContent(content ContentModel, platformVersion string) (CombinedModel, error)
-	GetCombinedModelForAnnotations(metadata Annotations, platformVersion string) (CombinedModel, error)
+	GetCombinedModelForContent(content ContentModel) (CombinedModel, error)
+	GetCombinedModelForAnnotations(metadata Annotations) (CombinedModel, error)
 	GetCombinedModel(uuid string) (CombinedModel, error)
 }
 
@@ -25,7 +24,7 @@ type contentRetrieverI interface {
 }
 
 type metadataRetrieverI interface {
-	getAnnotations(uuid string, platformVersion string) ([]Annotation, error)
+	getAnnotations(uuid string) ([]Annotation, error)
 }
 
 type dataRetriever struct {
@@ -33,13 +32,13 @@ type dataRetriever struct {
 	client  utils.Client
 }
 
-func (dc DataCombiner) GetCombinedModelForContent(content ContentModel, platformVersion string) (CombinedModel, error) {
+func (dc DataCombiner) GetCombinedModelForContent(content ContentModel) (CombinedModel, error) {
 
 	if content.getUUID() == "" {
 		return CombinedModel{}, errors.New("Content has no UUID provided. Can't deduce annotations for it.")
 	}
 
-	ann, err := dc.MetadataRetriever.getAnnotations(content.getUUID(), platformVersion)
+	ann, err := dc.MetadataRetriever.getAnnotations(content.getUUID())
 	if err != nil {
 		return CombinedModel{}, err
 	}
@@ -52,7 +51,7 @@ func (dc DataCombiner) GetCombinedModelForContent(content ContentModel, platform
 	}, nil
 }
 
-func (dc DataCombiner) GetCombinedModelForAnnotations(metadata Annotations, platformVersion string) (CombinedModel, error) {
+func (dc DataCombiner) GetCombinedModelForAnnotations(metadata Annotations) (CombinedModel, error) {
 
 	if metadata.UUID == "" {
 		return CombinedModel{}, errors.New("Annotations have no UUID referenced. Can't deduce content for it.")
@@ -77,19 +76,8 @@ func (dc DataCombiner) GetCombinedModel(uuid string) (CombinedModel, error) {
 		return CombinedModel{}, err
 	}
 
-	// Deduce the platform version
-	platform := PlatformV1
-	if content.getType() == contentTypeVideo {
-		platform = PlatformVideo
-	}
-	for _, identifier := range content.getIdentifiers() {
-		if strings.HasPrefix(identifier.Authority, videoAuthority) {
-			platform = PlatformVideo
-		}
-	}
-
-	// Get annotations for platformVersion
-	annotations, err := dc.MetadataRetriever.getAnnotations(uuid, platform)
+	// Get annotations
+	annotations, err := dc.MetadataRetriever.getAnnotations(uuid)
 	if err != nil {
 		return CombinedModel{}, err
 	}
@@ -102,13 +90,9 @@ func (dc DataCombiner) GetCombinedModel(uuid string) (CombinedModel, error) {
 	}, nil
 }
 
-func (dr dataRetriever) getAnnotations(uuid string, platformVersion string) ([]Annotation, error) {
+func (dr dataRetriever) getAnnotations(uuid string) ([]Annotation, error) {
 
 	var ann []Annotation
-
-	if platformVersion != "" {
-		dr.Address.Endpoint = strings.Replace(dr.Address.Endpoint, "{platformVersion}", platformVersion, -1)
-	}
 
 	b, status, err := utils.ExecuteHTTPRequest(uuid, dr.Address, dr.client)
 

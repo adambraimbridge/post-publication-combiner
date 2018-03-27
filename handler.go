@@ -26,7 +26,6 @@ func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *
 		logger.Errorf("Invalid UUID %s", uuid)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
-
 	}
 
 	err := handler.processor.ForceMessagePublish(uuid, transactionID)
