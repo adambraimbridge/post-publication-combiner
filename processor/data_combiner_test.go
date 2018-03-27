@@ -2,6 +2,7 @@ package processor
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -9,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/Financial-Times/post-publication-combiner/utils"
-	"github.com/golang/go/src/pkg/fmt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -137,6 +137,7 @@ func TestGetCombinedModelForContent(t *testing.T) {
 						},
 					},
 				},
+				LastModified: "2017-04-10T08:09:01.808Z",
 			},
 			nil,
 		},
@@ -147,7 +148,7 @@ func TestGetCombinedModelForContent(t *testing.T) {
 			MetadataRetriever: DummyMetadataRetriever{testCase.retrievedAnn, testCase.retrievedErr},
 		}
 		m, err := combiner.GetCombinedModelForContent(testCase.contentModel, "some_platform_version")
-		assert.Equal(t, testCase.expModel, m,
+		assert.True(t, reflect.DeepEqual(testCase.expModel, m),
 			fmt.Sprintf("Expected model: %v was not equal with the received one: %v \n", testCase.expModel, m))
 		if testCase.expError == nil {
 			assert.Equal(t, nil, err)
