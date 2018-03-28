@@ -9,6 +9,8 @@ The combined message is then sent to the CombinedPostPublicationEvents kafka que
 This is a combination point for synchronizing the content and the metadata publish flows.
 Note: one publish event can result in two messages in the CombinedPostPublicationEvents topics (one for the content publish, and one for the metadata publish).
 
+The service has a force endpoint, that allows putting a combined message in the queue, with the actual data from our content and metadata stores.
+
 This service depends on the following services:
 - kafka/kafka-proxy
 - document-store-api (/content endpoint)
@@ -59,7 +61,7 @@ If the force request has the `X-Request-Id` header set, that value will be propa
 
 Returns 200 if the message was published successfully
 
-Returns 422 (Unprocessable Entity) for an invalid uuid
+Returns 422 (Unprocessable Entity) for a uuid with invalid content type
 
 Returns 404 for missing content and metadata for the provided uuid
 
