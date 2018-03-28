@@ -251,10 +251,6 @@
 			"path": "gopkg.in/yaml.v2",
 			"revision": "86f5ed62f8a0ee96bd888d2efdfd6d4fb100a4eb",
 			"revisionTime": "2018-03-26T05:07:29Z"
-		},
-		{
-			"path": "olang.org/x/sys/unix",
-			"revision": ""
 		}
 	],
 	"rootPath": "github.com/Financial-Times/post-publication-combiner"
