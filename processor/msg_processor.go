@@ -11,9 +11,15 @@ import (
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/dchest/uniuri"
+
+	uuidlib "github.com/satori/go.uuid"
 )
 
-const CombinerMessageType = "cms-combined-content-published"
+const (
+	CombinerMessageType = "cms-combined-content-published"
+	CombinerOrigin      = "forced-combined-msg"
+	ContentType         = "application/json"
+)
 
 var (
 	NotFoundError           = errors.New("Content not found") // used when the content can not be found by the platform
@@ -87,12 +93,13 @@ func (p *MsgProcessor) ForceMessagePublish(uuid string, tid string) error {
 
 	if tid == "" {
 		tid = "tid_force_publish" + uniuri.NewLen(10) + "_post_publication_combiner"
-		logger.Infof("Generated tid: %d", tid)
+		logger.Infof("Generated tid: %s", tid)
 	}
 
 	h := map[string]string{
 		"X-Request-Id":     tid,
-		"Origin-System-Id": "force-publish",
+		"Content-Type":     ContentType,
+		"Origin-System-Id": CombinerOrigin,
 	}
 
 	//get combined message
@@ -125,7 +132,6 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 		return
 	}
 
-	// todo: decide on removing filtering
 	// wordpress, next-video, methode-article - the system origin is not enough to help us filtering. Filter by contentUri.
 	if !containsSubstringOf(p.config.SupportedContentURIs, cm.ContentURI) {
 		logger.Infof("%v - Skipped unsupported content with contentUri: %v. ", tid, cm.ContentURI)
@@ -135,14 +141,20 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 	var combinedMSG CombinedModel
 	// delete messages have empty payload
 	if cm.ContentModel == nil {
-		// todo: revise the correctness of the delete operation
+
 		//handle delete events
 		sl := strings.Split(cm.ContentURI, "/")
-		combinedMSG.MarkedDeleted = true
-		combinedMSG.UUID = sl[len(sl)-1]
+		uuid := sl[len(sl)-1]
+		if _, err := uuidlib.FromString(uuid); err != nil || uuid == "" {
+			logger.Errorf("UUID couldn't be determined, skipping message with TID=%v.", tid)
+			return
+		}
+		combinedMSG.UUID = uuid
 		combinedMSG.ContentURI = cm.ContentURI
 		combinedMSG.LastModified = cm.LastModified
+		combinedMSG.MarkedDeleted = "true"
 	} else {
+
 		//combine data
 		if cm.ContentModel.getUUID() == "" {
 			logger.Errorf("UUID not found after message marshalling, skipping message with TID=%v.", tid)
@@ -155,6 +167,9 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 			logger.Errorf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped. %v", tid, err)
 			return
 		}
+
+		combinedMSG.ContentURI = cm.ContentURI
+		combinedMSG.MarkedDeleted = "false"
 	}
 
 	//forward data
@@ -192,8 +207,7 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 
 func (p *MsgProcessor) filterAndForwardMsg(headers map[string]string, combinedMSG *CombinedModel, tid string) error {
 
-	// todo: remove logic - revise
-	if !combinedMSG.MarkedDeleted && !isTypeAllowed(p.config.SupportedContentTypes, combinedMSG.Content.getType()) {
+	if combinedMSG.Content != nil && !isTypeAllowed(p.config.SupportedContentTypes, combinedMSG.Content.getType()) {
 		logger.Infof("%v - Skipped unsupported content with type: %v", tid, combinedMSG.Content.getType())
 		return InvalidContentTypeError
 	}
@@ -229,7 +243,7 @@ func extractTID(headers map[string]string) string {
 	if tid == "" {
 		logger.Infof("Couldn't extract transaction id - X-Request-Id header could not be found.")
 		tid = "tid_" + uniuri.NewLen(10) + "_post_publication_combiner"
-		logger.Infof("Generated tid: %d", tid)
+		logger.Infof("Generated tid: %s", tid)
 	}
 
 	return tid

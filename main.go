@@ -119,7 +119,7 @@ func main() {
 	})
 	whitelistedMetadataOriginSystemHeaders := app.Strings(cli.StringsOpt{
 		Name:   "whitelistedMetadataOriginSystemHeaders",
-		Value:  []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub", "http://cmdb.ft.com/systems/next-video-editor"},
+		Value:  []string{"http://cmdb.ft.com/systems/pac", "http://cmdb.ft.com/systems/methode-web-pub", "http://cmdb.ft.com/systems/next-video-editor"},
 		Desc:   "Origin-System-Ids that are supported to be processed from the PostPublicationEvents queue.",
 		EnvVar: "WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS",
 	})
@@ -157,7 +157,7 @@ func main() {
 		// create channel for holding the post publication content and metadata messages
 		messagesCh := make(chan *processor.KafkaQMessage, 100)
 
-		// consumer messages from content queue
+		// consume messages from content queue
 		cConf := consumer.QueueConfig{
 			Addrs: []string{*kafkaProxyAddress},
 			Group: *kafkaContentConsumerGroup,
@@ -168,7 +168,7 @@ func main() {
 		go cc.Consumer.Start()
 		defer cc.Consumer.Stop()
 
-		// consumer messages from metadata queue
+		// consume messages from metadata queue
 		mConf := consumer.QueueConfig{
 			Addrs: []string{*kafkaProxyAddress},
 			Group: *kafkaMetadataConsumerGroup,

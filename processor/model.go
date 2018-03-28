@@ -15,7 +15,7 @@ type CombinedModel struct {
 
 	ContentURI    string `json:"contentUri"`
 	LastModified  string `json:"lastModified"`
-	MarkedDeleted bool   `json:"markedDeleted"`
+	MarkedDeleted string `json:"markedDeleted"`
 }
 
 type Annotations struct {

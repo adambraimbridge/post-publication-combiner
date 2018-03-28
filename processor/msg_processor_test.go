@@ -142,8 +142,9 @@ func TestProcessContentMsg_Successfully_Forwarded(t *testing.T) {
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
 			UUID:          "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-			MarkedDeleted: false,
+			MarkedDeleted: "false",
 			LastModified:  "2017-03-30T13:09:06.48Z",
+			ContentURI:    "http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
 			Content: ContentModel{
 				"uuid":  "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
 				"title": "simple title",
@@ -154,7 +155,7 @@ func TestProcessContentMsg_Successfully_Forwarded(t *testing.T) {
 
 	expMsg := producer.Message{
 		Headers: m.Headers,
-		Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","content":{"title":"simple title","type":"Article","uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b"},"metadata":null,"contentUri":"","lastModified":"2017-03-30T13:09:06.48Z","markedDeleted":false}`,
+		Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","content":{"title":"simple title","type":"Article","uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b"},"metadata":null,"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z","markedDeleted":"false"}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
@@ -182,15 +183,14 @@ func TestProcessContentMsg_DeleteEvent_Successfully_Forwarded(t *testing.T) {
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris, SupportedContentTypes: allowedContentTypes}
 	combiner := DummyDataCombiner{data: CombinedModel{
 		UUID:          "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-		Content:       ContentModel{},
 		ContentURI:    "http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-		MarkedDeleted: true,
+		MarkedDeleted: "true",
 		LastModified:  "2017-03-30T13:09:06.48Z",
 	}}
 
 	expMsg := producer.Message{
 		Headers: m.Headers,
-		Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","markedDeleted":true,"lastModified":"2017-03-30T13:09:06.48Z","content":null,"metadata":null}`,
+		Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","markedDeleted":"true","lastModified":"2017-03-30T13:09:06.48Z","content":null,"metadata":null}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
@@ -329,7 +329,7 @@ func TestProcessMetadataMsg_Successfully_Forwarded(t *testing.T) {
 		}}
 	expMsg := producer.Message{
 		Headers: m.Headers,
-		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":false,"content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
+		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":"","content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
@@ -375,8 +375,8 @@ func TestForceMessageWithTID(t *testing.T) {
 		}}
 	tid := "transaction_id_1"
 	expMsg := producer.Message{
-		Headers: map[string]string{"Message-Type": "cms-combined-content-published", "X-Request-Id": tid, "Origin-System-Id": "force-publish"},
-		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":false,"content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
+		Headers: map[string]string{"Message-Type": CombinerMessageType, "X-Request-Id": tid, "Origin-System-Id": CombinerOrigin, "Content-Type": ContentType},
+		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":"","content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expTID: tid, expMsg: expMsg}
@@ -424,8 +424,8 @@ func TestForceMessageWithoutTID(t *testing.T) {
 
 	emptyTID := ""
 	expMsg := producer.Message{
-		Headers: map[string]string{"Message-Type": "cms-combined-content-published", "X-Request-Id": "[ignore]", "Origin-System-Id": "force-publish"},
-		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":false,"content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
+		Headers: map[string]string{"Message-Type": CombinerMessageType, "X-Request-Id": "[ignore]", "Origin-System-Id": CombinerOrigin, "Content-Type": ContentType},
+		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":"","content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
 	}
 
 	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
@@ -482,14 +482,15 @@ func TestForceMessageNotFoundError(t *testing.T) {
 	assert.Equal(t, 2, len(hook.Entries))
 }
 
-func TestForceMessageFilteredError(t *testing.T) {
+func TestForceMessage_FilteringError(t *testing.T) {
 
 	allowedOrigins := []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"}
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins, SupportedContentTypes: allowedContentTypes}
 	combiner := DummyDataCombiner{
 		data: CombinedModel{
-			UUID:    "80fb3e57-8d3b-4f07-bbb6-8788452d63cb",
+			UUID: "80fb3e57-8d3b-4f07-bbb6-8788452d63cb",
+			// Content Placeholders - marked with Content type - shouldn't get into the Combined queue
 			Content: ContentModel{"uuid": "80fb3e57-8d3b-4f07-bbb6-8788452d63cb", "title": "simple title", "type": "Content"},
 			Metadata: []Annotation{
 				{
@@ -579,7 +580,7 @@ func TestForwardMsg(t *testing.T) {
 				"X-Request-Id": "some-tid1",
 			},
 			uuid: "uuid1",
-			body: `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":""},"metadata":null,"contentUri":"","lastModified":"","markedDeleted":false}`,
+			body: `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":""},"metadata":null,"contentUri":"","lastModified":"","markedDeleted":"false"}`,
 			err:  nil,
 		},
 		{
@@ -587,7 +588,7 @@ func TestForwardMsg(t *testing.T) {
 				"X-Request-Id": "some-tid2",
 			},
 			uuid: "uuid-returning-error",
-			body: `{"uuid":"uuid-returning-error","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":""},"metadata":null}`,
+			body: `{"uuid":"uuid-returning-error","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","byline":"","standfirst":"","description":"","mainImage":"","publishReference":"","type":""},"metadata":null}`,
 			err:  fmt.Errorf("Some error"),
 		},
 	}
