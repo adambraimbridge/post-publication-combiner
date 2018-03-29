@@ -66,9 +66,3 @@ type Identifier struct {
 	Authority       string `json:"authority"`
 	IdentifierValue string `json:"identifierValue"`
 }
-
-//******************* ADD VALUES *********************
-
-func (cm *ContentModel) addUUID(uuid string) {
-	(*cm)["uuid"] = uuid
-}

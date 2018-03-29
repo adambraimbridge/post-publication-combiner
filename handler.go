@@ -23,7 +23,7 @@ func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *
 	defer request.Body.Close()
 
 	if !isValidUUID(uuid) {
-		logger.Errorf("Invalid UUID %s", uuid)
+		logger.WithTransactionID(transactionID).Errorf("Invalid UUID %s", uuid)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
