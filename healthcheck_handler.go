@@ -111,7 +111,7 @@ func gtgCheck(handler func() (string, error)) gtg.Status {
 func (h *HealthcheckHandler) checkIfDocumentStoreIsReachable() (string, error) {
 	_, _, err := utils.ExecuteSimpleHTTPRequest(h.docStoreAPIBaseURL+GTGEndpoint, h.httpClient)
 	if err != nil {
-		logger.Errorf("Healthcheck: %v", err.Error())
+		logger.WithError(err).Errorf("Healthcheck error: %v", err.Error())
 		return "", err
 	}
 	return ResponseOK, nil
@@ -120,7 +120,7 @@ func (h *HealthcheckHandler) checkIfDocumentStoreIsReachable() (string, error) {
 func (h *HealthcheckHandler) checkIfPublicAnnotationsAPIIsReachable() (string, error) {
 	_, _, err := utils.ExecuteSimpleHTTPRequest(h.publicAnnotationsAPIBaseURL+GTGEndpoint, h.httpClient)
 	if err != nil {
-		logger.Errorf("Healthcheck: %v", err.Error())
+		logger.WithError(err).Errorf("Healthcheck error: %v", err.Error())
 		return "", err
 	}
 	return ResponseOK, nil

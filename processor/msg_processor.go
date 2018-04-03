@@ -105,13 +105,13 @@ func (p *MsgProcessor) ForceMessagePublish(uuid string, tid string) error {
 	//get combined message
 	combinedMSG, err := p.DataCombiner.GetCombinedModel(uuid)
 	if err != nil {
-		logger.WithTransactionID(tid).WithUUID(uuid).Errorf("%v - Error obtaining the combined message, it will be skipped. %v", tid, err)
+		logger.WithTransactionID(tid).WithUUID(uuid).WithError(err).Errorf("%v - Error obtaining the combined message, it will be skipped.", tid)
 		return err
 	}
 
 	if combinedMSG.Content.getUUID() == "" && combinedMSG.Metadata == nil {
 		err := NotFoundError
-		logger.WithTransactionID(tid).WithUUID(uuid).Errorf("%v - Could not find content with uuid %s. %v", tid, uuid, err)
+		logger.WithTransactionID(tid).WithUUID(uuid).WithError(err).Errorf("%v - Could not find content with uuid %s.", tid, uuid)
 		return err
 	}
 
@@ -128,7 +128,7 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 	var cm MessageContent
 	b := []byte(m.Body)
 	if err := json.Unmarshal(b, &cm); err != nil {
-		logger.WithTransactionID(tid).Errorf("Could not unmarshall message with TID=%v, error=%v", tid, err.Error())
+		logger.WithTransactionID(tid).WithError(err).Errorf("Could not unmarshall message with TID=%v", tid)
 		return
 	}
 
@@ -146,7 +146,7 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 		sl := strings.Split(cm.ContentURI, "/")
 		uuid := sl[len(sl)-1]
 		if _, err := uuidlib.FromString(uuid); err != nil || uuid == "" {
-			logger.WithTransactionID(tid).Errorf("UUID couldn't be determined, skipping message with TID=%v.", tid)
+			logger.WithTransactionID(tid).WithError(err).Errorf("UUID couldn't be determined, skipping message with TID=%v.", tid)
 			return
 		}
 		combinedMSG.UUID = uuid
@@ -164,7 +164,7 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 		var err error
 		combinedMSG, err = p.DataCombiner.GetCombinedModelForContent(cm.ContentModel)
 		if err != nil {
-			logger.WithTransactionID(tid).WithUUID(cm.ContentModel.getUUID()).Errorf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped. %v", tid, err)
+			logger.WithTransactionID(tid).WithUUID(cm.ContentModel.getUUID()).WithError(err).Errorf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped.", tid)
 			return
 		}
 
@@ -192,14 +192,14 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 	var ann Annotations
 	b := []byte(m.Body)
 	if err := json.Unmarshal(b, &ann); err != nil {
-		logger.WithTransactionID(tid).Errorf("Could not unmarshall message with TID=%v, error=%v", tid, err.Error())
+		logger.WithTransactionID(tid).WithError(err).Errorf("Could not unmarshall message with TID=%v", tid)
 		return
 	}
 
 	//combine data
 	combinedMSG, err := p.DataCombiner.GetCombinedModelForAnnotations(ann)
 	if err != nil {
-		logger.WithTransactionID(tid).Errorf("%v - Error obtaining the combined message. Content couldn't get read. Message will be skipped. %v", tid, err)
+		logger.WithTransactionID(tid).WithError(err).Errorf("%v - Error obtaining the combined message. Content couldn't get read. Message will be skipped.", tid)
 		return
 	}
 	p.filterAndForwardMsg(m.Headers, &combinedMSG, tid)
@@ -215,7 +215,7 @@ func (p *MsgProcessor) filterAndForwardMsg(headers map[string]string, combinedMS
 	//forward data
 	err := p.forwardMsg(headers, combinedMSG)
 	if err != nil {
-		logger.WithTransactionID(tid).Errorf("%v - Error sending transformed message to queue: %v", tid, err)
+		logger.WithTransactionID(tid).WithError(err).Errorf("%v - Error sending transformed message to queue.", tid)
 		return err
 	}
 	logger.WithTransactionID(tid).Infof("%v - Mapped and sent for uuid: %v", tid, combinedMSG.UUID)

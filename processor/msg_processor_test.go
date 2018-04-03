@@ -94,7 +94,8 @@ func TestProcessContentMsg_Combiner_Errors(t *testing.T) {
 	p.processContentMsg(m)
 
 	assert.Equal(t, "error", hook.LastEntry().Level.String())
-	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped. %v", m.Headers["X-Request-Id"], combiner.err.Error()))
+	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Error obtaining the combined message. Metadata could not be read. Message will be skipped.", m.Headers["X-Request-Id"]))
+	assert.Equal(t, hook.LastEntry().Data["error"].(error).Error(), combiner.err.Error())
 	assert.Equal(t, 1, len(hook.Entries))
 }
 
@@ -126,7 +127,8 @@ func TestProcessContentMsg_Forwarder_Errors(t *testing.T) {
 	p.processContentMsg(m)
 
 	assert.Equal(t, "error", hook.LastEntry().Level.String())
-	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Error sending transformed message to queue: %v", m.Headers["X-Request-Id"], producer.expError.Error()))
+	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Error sending transformed message to queue.", m.Headers["X-Request-Id"]))
+	assert.Equal(t, hook.LastEntry().Data["error"].(error).Error(), producer.expError.Error())
 	assert.Equal(t, 1, len(hook.Entries))
 }
 
@@ -245,7 +247,8 @@ func TestProcessMetadataMsg_SupportedOrigin_Unmarshall_Error(t *testing.T) {
 	p.processMetadataMsg(m)
 
 	assert.Equal(t, "error", hook.LastEntry().Level.String())
-	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("Could not unmarshall message with TID=%v, error=", m.Headers["X-Request-Id"]))
+	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("Could not unmarshall message with TID=%v", m.Headers["X-Request-Id"]))
+	assert.Equal(t, hook.LastEntry().Data["error"].(error).Error(), "invalid character 's' looking for beginning of value")
 	assert.Equal(t, 1, len(hook.Entries))
 }
 
@@ -292,7 +295,8 @@ func TestProcessMetadataMsg_Forwarder_Errors(t *testing.T) {
 	p.processMetadataMsg(m)
 
 	assert.Equal(t, "error", hook.LastEntry().Level.String())
-	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Error sending transformed message to queue:", m.Headers["X-Request-Id"]))
+	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Error sending transformed message to queue", m.Headers["X-Request-Id"]))
+	assert.Equal(t, hook.LastEntry().Data["error"].(error).Error(), "some producer error")
 	assert.Equal(t, 1, len(hook.Entries))
 }
 
@@ -458,7 +462,8 @@ func TestForceMessageCombinerError(t *testing.T) {
 	assert.Equal(t, combiner.err, err)
 
 	assert.Equal(t, "error", hook.LastEntry().Level.String())
-	assert.Contains(t, hook.LastEntry().Message, "Error obtaining the combined message, it will be skipped. some error")
+	assert.Contains(t, hook.LastEntry().Message, "Error obtaining the combined message, it will be skipped.")
+	assert.Equal(t, hook.LastEntry().Data["error"].(error).Error(), "some error")
 	assert.Equal(t, 2, len(hook.Entries))
 }
 
@@ -478,7 +483,8 @@ func TestForceMessageNotFoundError(t *testing.T) {
 	assert.Equal(t, NotFoundError, err)
 
 	assert.Equal(t, "error", hook.LastEntry().Level.String())
-	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("Could not find content with uuid %s. Content not found", uuid))
+	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("Could not find content with uuid %s.", uuid))
+	assert.Equal(t, hook.LastEntry().Data["error"].(error).Error(), "Content not found")
 	assert.Equal(t, 2, len(hook.Entries))
 }
 
@@ -563,7 +569,8 @@ func TestForceMessageProducerError(t *testing.T) {
 	assert.Equal(t, producer.expError, err)
 
 	assert.Equal(t, "error", hook.LastEntry().Level.String())
-	assert.Contains(t, hook.LastEntry().Message, "Error sending transformed message to queue: some error")
+	assert.Contains(t, hook.LastEntry().Message, "Error sending transformed message to queue.")
+	assert.Equal(t, hook.LastEntry().Data["error"].(error).Error(), "some error")
 	assert.Equal(t, 2, len(hook.Entries))
 }
 

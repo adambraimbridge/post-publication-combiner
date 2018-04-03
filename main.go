@@ -204,7 +204,7 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		logger.Errorf("App could not start, error=[%v]\n", err)
+		logger.WithError(err).Error("App could not start")
 	}
 }
 
@@ -256,7 +256,7 @@ func routeRequests(port *string, requestHandler *requestHandler, healthService *
 	logger.Infof("[Shutdown] PostPublicationCombiner is shutting down")
 
 	if err := server.Close(); err != nil {
-		logger.Errorf("Unable to stop http server: %v", err)
+		logger.WithError(err).Error("Unable to stop http server")
 	}
 
 	wg.Wait()
