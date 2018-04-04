@@ -9,10 +9,12 @@ The combined message is then sent to the CombinedPostPublicationEvents kafka que
 This is a combination point for synchronizing the content and the metadata publish flows.
 Note: one publish event can result in two messages in the CombinedPostPublicationEvents topics (one for the content publish, and one for the metadata publish).
 
+The service has a force endpoint, that allows putting a combined message in the queue, with the actual data from our content and metadata stores.
+
 This service depends on the following services:
 - kafka/kafka-proxy
 - document-store-api (/content endpoint)
-- public-annotations-api (/content/{uuid}/annotations/{platformVersion} endpoint)
+- public-annotations-api (/content/{uuid}/annotations endpoint)
 
 ## Installation
 
@@ -59,7 +61,7 @@ If the force request has the `X-Request-Id` header set, that value will be propa
 
 Returns 200 if the message was published successfully
 
-Returns 422 (Unprocessable Entity) for an invalid uuid
+Returns 422 (Unprocessable Entity) for a uuid with invalid content type
 
 Returns 404 for missing content and metadata for the provided uuid
 
@@ -80,5 +82,5 @@ Checks if:
 
 ### Logging
 
-* The application uses [logrus](https://github.com/Sirupsen/logrus); the log file is initialised in [main.go](main.go).
-* NOTE: `/__build-info` and `/__gtg` endpoints are not logged as they are called every second from varnish/vulcand and this information is not needed in logs/splunk.
+* The application uses the FT [go-logger](https://github.com/Financial-Times/go-logger) library, based on [logrus](https://github.com/sirupsen/logrus).
+* NOTE: `/__build-info` and `/__gtg` endpoints are not logged as they are called frequently.

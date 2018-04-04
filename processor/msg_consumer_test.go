@@ -30,13 +30,13 @@ func TestQConsumerProcessMsg(t *testing.T) {
 	}
 
 	msgs := []consumer.Message{
-		consumer.Message{
+		{
 			Headers: map[string]string{"X-Request-Id": "some-tid1"},
-			Body:    `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":""},"v1-metadata":null}`,
+			Body:    `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":"","byline":"","standfirst":"","description":"","mainImage":"","publishReference":""},"v1-metadata":null}`,
 		},
-		consumer.Message{
+		{
 			Headers: map[string]string{"X-Request-Id": "some-tid2"},
-			Body:    `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":false,"byline":"","standfirst":"","description":"","mainImage":"","publishReference":""},"v1-metadata":null}`,
+			Body:    `{"uuid":"uuid1","content":{"uuid":"","title":"","body":"","identifiers":null,"publishedDate":"","lastModified":"","firstPublishedDate":"","mediaType":"","marked_deleted":"","byline":"","standfirst":"","description":"","mainImage":"","publishReference":""},"v1-metadata":null}`,
 		},
 	}
 

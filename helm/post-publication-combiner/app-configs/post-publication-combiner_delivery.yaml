@@ -13,4 +13,4 @@ env:
   DOCUMENT_STORE_BASE_URL: http://document-store-api:8080
   DOCUMENT_STORE_API_ENDPOINT: /content/{uuid}
   PUBLIC_ANNOTATIONS_API_BASE_URL: http://public-annotations-api:8080
-  PUBLIC_ANNOTATIONS_API_ENDPOINT: /content/{uuid}/annotations/{platformVersion}
+  PUBLIC_ANNOTATIONS_API_ENDPOINT: /content/{uuid}/annotations
