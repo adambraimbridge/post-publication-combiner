@@ -54,8 +54,8 @@ jobs:
       - image: bankrs/golang-dredd:go1.8.3-dredd4.4.0
         environment:
           GOPATH: /go
-          KAFKA_PROXY_ADDR: "http://localhost:9000",
-          DOCUMENT_STORE_BASE_URL: "http://localhost:9000/__document-store-api",
+          KAFKA_PROXY_ADDR: "http://localhost:9000"
+          DOCUMENT_STORE_BASE_URL: "http://localhost:9000/__document-store-api"
           PUBLIC_ANNOTATIONS_API_BASE_URL: "http://localhost:9000/__public-annotations-api"
       - image: peteclarkft/ersatz:stable
     steps:
