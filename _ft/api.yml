@@ -15,29 +15,29 @@ basePath: "/"
 schemes:
   - http
   - https
+
 definitions:
   healthcheck_check:
     type: object
     properties:
-      id: 
+      id:
         type: string
-      name: 
+      name:
         type: string
-      ok: 
+      ok:
         type: boolean
-      severity: 
+      severity:
         type: integer
-      businessImpact: 
+      businessImpact:
         type: string
-      technicalSummary: 
+      technicalSummary:
         type: string
-      panicGuide: 
+      panicGuide:
         type: string
-      checkOutput: 
+      checkOutput:
         type: string
-      lastUpdated: 
+      lastUpdated:
         type: string
-
   healthcheck:
     type: object
     properties:
@@ -56,51 +56,32 @@ definitions:
       ok:
         type: boolean
         enum: [true] # to enforce error if false
-      severity: 
+      severity:
         type: integer
     required:
       - ok
+
 paths:
-  /wrong-uuid:
+  /{uuid}:
     post:
-      summary: send wrong uuid
-      consumes:
-        - application/json
+      summary: UUID Force publish
+      description: >
+        Tries to publish into CombinedPostPublicationEvents the content and it's annotations for the given UUID
+      parameters:
+        - name: uuid
+          in: path
+          description: UUID for the content that the publish wants to be enforced
+          required: true
+          type: string
+          x-example: a224c5d3-0f1c-49bd-b70c-c88f5d29cf60
       responses:
+        200:
+          description: When for the given uuid is found 'content' or 'annotations' or both of them
         400:
           description: Response expected when the uuid is wrong
-  /850fd3e9-025d-44c2-bb8a-a48f15b4bb71:
-    post:
-      summary: send not existing uuid
-      consumes:
-        - application/json
-      responses:
         404:
           description: Response expected when the uuid is not found
-  /a224c5d3-0f1c-49bd-b70c-c88f5d29cf60:
-    post:
-      summary: found uuid
-      consumes:
-        - application/json
-      responses:
-        200:
-          description: Response expected when the uuid is found
-  /18e74de5-0f13-40ad-85d1-321c2af58624:
-    post:
-      summary: found uuid content but no annotations
-      consumes:
-        - application/json
-      responses:
-        200:
-          description: Response expected when the uuid is found and no annotations are found
-  /7b476898-189f-44b7-85d6-e68e5c8643a0:
-    post:
-      summary: found uuid but no content for it just annotations
-      consumes:
-        - application/json
-      responses:
-        200: # maybe 404??
-          description: Response expected when the uuid is found and no content is found
+
   /__health:
     get:
       summary: Healthcheck
@@ -115,6 +96,7 @@ paths:
             Please inspect the overall ok property to see whether or not the application is healthy.
           schema:
             $ref: '#/definitions/healthcheck'
+
   /__gtg:
     get:
       summary: Good To Go
@@ -126,3 +108,28 @@ paths:
           description: The application is healthy enough to perform all its functions correctly - i.e. good to go.
           examples:
                text/plain; charset=US-ASCII: OK
+        503:
+          description: >
+            One or more of the applications healthchecks have failed,
+            so please do not use the app. See the /__health endpoint for more detailed information.
+
+  /__build-info:
+    get:
+      summary: Build Information
+      description: >
+        Returns application build info, such as the git repository and revision,
+        the golang version it was built with, and the app release version.
+      produces:
+        - application/json; charset=UTF-8
+      tags:
+        - Info
+      responses:
+        200:
+          description: Outputs build information as described in the summary.
+          examples:
+            application/json; charset=UTF-8:
+              version: 0.0.1
+              repository: https://github.com/Financial-Times/app-name.git
+              revision: 7cdbdb18b4a518eef3ebb1b545fc124612f9d7cd
+              builder: go version go1.6.3 linux/amd64
+              dateTime: "20161123122615"

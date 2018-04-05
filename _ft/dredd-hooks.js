@@ -31,8 +31,3 @@ hooks.beforeAll(function(t, done) {
    req.end();
    done();
 });
-
-
-hooks.beforeEach(function (transaction) {
-    transaction.skip = false
-});
