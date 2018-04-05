@@ -1,0 +1,128 @@
+swagger: "2.0"
+
+info:
+  title: Post Publication Combiner
+  description: Combines the PostPublication and the PostMetadataPublication events
+  version: 0.0.1
+  license:
+    name: MIT
+  contact:
+    name: Universal Publishing
+    email: universal.publishing@ft.com
+
+host: api.ft.com
+basePath: "/"
+schemes:
+  - http
+  - https
+definitions:
+  healthcheck_check:
+    type: object
+    properties:
+      id: 
+        type: string
+      name: 
+        type: string
+      ok: 
+        type: boolean
+      severity: 
+        type: integer
+      businessImpact: 
+        type: string
+      technicalSummary: 
+        type: string
+      panicGuide: 
+        type: string
+      checkOutput: 
+        type: string
+      lastUpdated: 
+        type: string
+
+  healthcheck:
+    type: object
+    properties:
+      schemaVersion:
+        type: integer
+      systemCode:
+        type: string
+      name:
+        type: string
+      description":
+        type: string
+      checks:
+        type: array
+        items:
+          $ref: '#/definitions/healthcheck_check'
+      ok:
+        type: boolean
+        enum: [true] # to enforce error if false
+      severity: 
+        type: integer
+    required:
+      - ok
+paths:
+  /wrong-uuid:
+    post:
+      summary: send wrong uuid
+      consumes:
+        - application/json
+      responses:
+        400:
+          description: Response expected when the uuid is wrong
+  /850fd3e9-025d-44c2-bb8a-a48f15b4bb71:
+    post:
+      summary: send not existing uuid
+      consumes:
+        - application/json
+      responses:
+        404:
+          description: Response expected when the uuid is not found
+  /a224c5d3-0f1c-49bd-b70c-c88f5d29cf60:
+    post:
+      summary: found uuid
+      consumes:
+        - application/json
+      responses:
+        200:
+          description: Response expected when the uuid is found
+  /18e74de5-0f13-40ad-85d1-321c2af58624:
+    post:
+      summary: found uuid content but no annotations
+      consumes:
+        - application/json
+      responses:
+        200:
+          description: Response expected when the uuid is found and no annotations are found
+  /7b476898-189f-44b7-85d6-e68e5c8643a0:
+    post:
+      summary: found uuid but no content for it just annotations
+      consumes:
+        - application/json
+      responses:
+        200: # maybe 404??
+          description: Response expected when the uuid is found and no content is found
+  /__health:
+    get:
+      summary: Healthcheck
+      description: Runs application healthchecks and returns FT Healthcheck style json.
+      produces:
+        - application/json
+      responses:
+        200:
+          description: >
+            Should always return 200 along with the output of the healthchecks - regardless
+            of whether the healthchecks failed or not.
+            Please inspect the overall ok property to see whether or not the application is healthy.
+          schema:
+            $ref: '#/definitions/healthcheck'
+  /__gtg:
+    get:
+      summary: Good To Go
+      description: Lightly healthchecks the application, and returns a 200 if it's Good-To-Go.
+      produces:
+          - text/plain; charset=US-ASCII
+      responses:
+        200:
+          description: The application is healthy enough to perform all its functions correctly - i.e. good to go.
+          examples:
+               text/plain; charset=US-ASCII: OK

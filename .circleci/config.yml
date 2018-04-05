@@ -41,18 +41,44 @@ jobs:
   dockerfile:
     working_directory: /post-publication-combiner
     docker:
-      - image: docker:1.12.6-git
+      - image: docker:17.09.1-ce-git
     steps:
       - checkout
       - setup_docker_engine
       - run:
           name: Build Dockerfile
           command: docker build .
+  dredd:
+    working_directory: /go/src/github.com/Financial-Times/post-publication-combiner
+    docker:
+      - image: bankrs/golang-dredd:go1.8.3-dredd4.4.0
+        environment:
+          GOPATH: /go
+          KAFKA_PROXY_ADDR: "http://localhost:9000",
+          DOCUMENT_STORE_BASE_URL: "http://localhost:9000/__document-store-api",
+          PUBLIC_ANNOTATIONS_API_BASE_URL: "http://localhost:9000/__public-annotations-api"
+      - image: peteclarkft/ersatz:stable
+    steps:
+      - checkout
+      - run:
+          name: External Dependencies
+          command: |
+            go get -u github.com/kardianos/govendor
+      - run:
+          name: Govendor Sync
+          command: govendor sync -v
+      - run:
+          name: Go Build
+          command: go build -v
+      - run:
+          name: Dredd API Testing
+          command: dredd
 workflows:
   version: 2
   test-and-build-docker:
     jobs:
       - build
+      - dredd
       - dockerfile:
           requires:
             - build
