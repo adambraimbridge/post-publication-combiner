@@ -62,6 +62,26 @@ definitions:
       - ok
 
 paths:
+  /{uuid}:
+    post:
+      summary: UUID Force publish
+      description: >
+        Tries to publish into CombinedPostPublicationEvents the content and it's annotations for the given UUID
+      parameters:
+        - name: uuid
+          in: path
+          description: UUID for the content that the publish wants to be enforced
+          required: true
+          type: string
+          x-example: a224c5d3-0f1c-49bd-b70c-c88f5d29cf60
+      responses:
+        200:
+          description: When for the given uuid is found 'content' or 'annotations' or both of them
+        400:
+          description: Response expected when the uuid is wrong
+        404:
+          description: Response expected when the uuid is not found
+
   /__health:
     get:
       summary: Healthcheck
@@ -113,23 +133,3 @@ paths:
               revision: 7cdbdb18b4a518eef3ebb1b545fc124612f9d7cd
               builder: go version go1.6.3 linux/amd64
               dateTime: "20161123122615"
-
-  /{uuid}:
-    post:
-      summary: UUID Force publish
-      description: >
-        Tries to publish into CombinedPostPublicationEvents the content and it's annotations for the given UUID
-      parameters:
-        - name: uuid
-          in: path
-          description: UUID for the content that the publish wants to be enforced
-          required: true
-          type: string
-          x-example: a224c5d3-0f1c-49bd-b70c-c88f5d29cf60
-      responses:
-        200:
-          description: When for the given uuid is found 'content' or 'annotations' or both of them
-        400:
-          description: Response expected when the uuid is wrong
-        404:
-          description: Response expected when the uuid is not found

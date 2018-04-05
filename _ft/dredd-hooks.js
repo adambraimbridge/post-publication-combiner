@@ -4,6 +4,11 @@ var fs = require('fs');
 
 const defaultFixtures = './_ft/ersatz-fixtures.yml';
 
+function sleepFor( sleepDuration ){
+    var now = new Date().getTime();
+    while(new Date().getTime() < now + sleepDuration){ /* do nothing */ } 
+}
+
 hooks.beforeAll(function(t, done) {
    if(!fs.existsSync(defaultFixtures)){
       console.log('No fixtures found, skipping hook.');
@@ -29,5 +34,6 @@ hooks.beforeAll(function(t, done) {
 
    req.write(contents);
    req.end();
+   sleepFor(5000) // sleep in order to allow ersatz to load the sent config
    done();
 });
