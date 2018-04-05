@@ -101,4 +101,3 @@ fixtures:
   /topics:
     get:
       status: 200
-      
