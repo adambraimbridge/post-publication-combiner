@@ -25,7 +25,6 @@ fixtures:
     get:
       status: 200
       body: []
-        # - value: "WC1SZXF1ZXN0LUlkOjEKCnsicGF5bG9hZCI6eyJ1dWlkIjoiMGNlZjI1OWQtMDMwZC00OTdkLWI0ZWYtZThmYTBlZTZkYjZiIiwidGl0bGUiOiJzaW1wbGUgdGl0bGUiLCJ0eXBlIjoiQXJ0aWNsZSJ9LCJjb250ZW50VXJpIjoiaHR0cDovL3dvcmRwcmVzcy1hcnRpY2xlLW1hcHBlci9jb250ZW50LzBjZWYyNTlkLTAzMGQtNDk3ZC1iNGVmLWU4ZmEwZWU2ZGI2YiIsImxhc3RNb2RpZmllZCI6IjIwMTctMDMtMzBUMTM6MDk6MDYuNDhaIn0K"
   /base_uri:
     delete:
       status: 200
