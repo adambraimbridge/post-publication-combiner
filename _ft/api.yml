@@ -66,7 +66,9 @@ paths:
     post:
       summary: UUID Force publish
       description: >
-        Tries to publish into CombinedPostPublicationEvents the content and it's annotations for the given UUID
+        Creates and forwards a CombinedPostPublicationEvent to the queue for the provided UUID.
+        Request body should be empty. 
+        The combiner reads the content with that UUID from document-store, and based on its content type, it complements the message with the corresponding annotations.
       parameters:
         - name: uuid
           in: path
@@ -76,11 +78,13 @@ paths:
           x-example: a224c5d3-0f1c-49bd-b70c-c88f5d29cf60
       responses:
         200:
-          description: When for the given uuid is found 'content' or 'annotations' or both of them
+          description: if the message was published successfully
         400:
-          description: Response expected when the uuid is wrong
+          description: for wrong formatted UUID
         404:
-          description: Response expected when the uuid is not found
+          description: for missing content and metadata for the provided uuid
+        422:
+          description: for a uuid with invalid content type
 
   /__health:
     get:
