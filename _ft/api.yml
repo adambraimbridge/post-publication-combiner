@@ -85,6 +85,8 @@ paths:
           description: for missing content and metadata for the provided uuid
         422:
           description: for a uuid with invalid content type
+        500:
+          description: for unexpected processing errors
 
   /__health:
     get:

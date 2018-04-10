@@ -1,6 +1,6 @@
 FROM peteclarkft/ersatz:0.0.4
 
-# UPP Suggestions Umbrella Mock
+# Kafka, __public-annotations-api, __document-store-api and utility (__gtg, __health) endpoints mocking
 COPY ./ersatz-fixtures.yml /_ft/ersatz-fixtures.yml
 
 WORKDIR /
