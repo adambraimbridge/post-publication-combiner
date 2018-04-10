@@ -59,13 +59,7 @@ The combiner reads the content with that UUID from document-store, and based on 
 
 If the force request has the `X-Request-Id` header set, that value will be propagated to the queue - as a message header.
 
-Returns 200 if the message was published successfully
-
-Returns 422 (Unprocessable Entity) for a uuid with invalid content type
-
-Returns 404 for missing content and metadata for the provided uuid
-
-Returns 500 for unexpected processing errors
+See returned HTTP responses [here](_ft/api.yml)
 
 ## Healthchecks
 Our standard admin endpoints are:
