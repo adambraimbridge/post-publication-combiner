@@ -116,7 +116,7 @@ paths:
                text/plain; charset=US-ASCII: OK
         503:
           description: >
-            One or more of the applications healthchecks have failed,
+            One or more of the application's healthchecks have failed,
             so please do not use the app. See the /__health endpoint for more detailed information.
 
   /__build-info:
