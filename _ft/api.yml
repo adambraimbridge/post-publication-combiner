@@ -2,7 +2,9 @@ swagger: "2.0"
 
 info:
   title: Post Publication Combiner
-  description: Combines the PostPublication and the PostMetadataPublication events
+  description: >
+    This service builds combined messages (content + annotations) based on events received from PostConceptAnnotations or PostPublicationEvents.    
+    The combined message is then sent to the CombinedPostPublicationEvents kafka queue.
   version: 0.0.1
   license:
     name: MIT
@@ -64,11 +66,12 @@ definitions:
 paths:
   /{uuid}:
     post:
-      summary: UUID Force publish
+      summary: Force endpoint
       description: >
         Creates and forwards a CombinedPostPublicationEvent to the queue for the provided UUID.
         Request body should be empty. 
         The combiner reads the content with that UUID from document-store, and based on its content type, it complements the message with the corresponding annotations.
+        If the force request has the `X-Request-Id` header set, that value will be propagated to the queue - as a message header.
       parameters:
         - name: uuid
           in: path

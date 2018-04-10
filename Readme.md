@@ -49,17 +49,8 @@ Test:
 * CI provided by CircleCI: [post-publication-combiner](https://circleci.com/gh/Financial-Times/post-publication-combiner)
 
 ## Service/Utility endpoints
-<a name="force">Force endpoint</a>
 
-`/{uuid}`
-###POST
-Creates and forwards a CombinedPostPublicationEvent to the queue for the provided UUID.
-Request body should be empty. 
-The combiner reads the content with that UUID from document-store, and based on its content type, it complements the message with the corresponding annotations.
-
-If the force request has the `X-Request-Id` header set, that value will be propagated to the queue - as a message header.
-
-See returned HTTP responses [here](_ft/api.yml)
+Refer to [api.yml](_ft/api.yml) for api related documentation.
 
 ## Healthchecks
 Our standard admin endpoints are:
