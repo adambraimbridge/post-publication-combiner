@@ -41,7 +41,7 @@ Please check --help for more details.
 
 Test:
     You can verify the service's behavior by checking the consumed and the generated kafka messages.
-    You can also use the [force enpoint](#force)
+    You can also use the [force endpoint](#force)
 
 ## Build and deployment
 
