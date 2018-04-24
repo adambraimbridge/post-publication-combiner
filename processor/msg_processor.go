@@ -140,7 +140,7 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 
 	var combinedMSG CombinedModel
 	// delete messages have empty payload
-	if cm.ContentModel == nil {
+	if cm.ContentModel == nil || len(cm.ContentModel) == 0 {
 
 		//handle delete events
 		sl := strings.Split(cm.ContentURI, "/")
@@ -157,7 +157,7 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 
 		//combine data
 		if cm.ContentModel.getUUID() == "" {
-			logger.WithTransactionID(tid).Errorf("UUID not found after message marshalling, skipping message with TID=%v.", tid)
+			logger.WithTransactionID(tid).Errorf("UUID not found after message marshalling, skipping message with contentUri=%v.", cm.ContentURI)
 			return
 		}
 
