@@ -72,7 +72,7 @@ func TestProcessContentMsg_SupportedContent_EmptyUUID(t *testing.T) {
 	p.processContentMsg(m)
 
 	assert.Equal(t, "error", hook.LastEntry().Level.String())
-	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("UUID not found after message marshalling, skipping message with TID=%v.", m.Headers["X-Request-Id"]))
+	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("UUID not found after message marshalling, skipping message with contentUri=http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b."))
 	assert.Equal(t, 1, len(hook.Entries))
 }
 
@@ -175,38 +175,55 @@ func TestProcessContentMsg_Successfully_Forwarded(t *testing.T) {
 }
 
 func TestProcessContentMsg_DeleteEvent_Successfully_Forwarded(t *testing.T) {
-	m := consumer.Message{
-		Headers: map[string]string{"X-Request-Id": "some-tid1"},
-		Body:    `{"payload":null,"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
+	testCases := []struct {
+		m        consumer.Message
+		testName string
+	}{
+		{
+			m: consumer.Message{
+				Headers: map[string]string{"X-Request-Id": "some-tid1"},
+				Body:    `{"payload":null,"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
+			},
+			testName: "Delete with null payload",
+		},
+		{
+			m: consumer.Message{
+				Headers: map[string]string{"X-Request-Id": "some-tid1"},
+				Body:    `{"payload":{},"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
+			},
+			testName: "Delete with empty payload",
+		},
 	}
+	for _, test := range testCases {
+		t.Log(test.testName)
+		allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
+		allowedContentTypes := []string{"Article", "Video"}
+		config := MsgProcessorConfig{SupportedContentURIs: allowedUris, SupportedContentTypes: allowedContentTypes}
+		combiner := DummyDataCombiner{data: CombinedModel{
+			UUID:          "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+			ContentURI:    "http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+			MarkedDeleted: "true",
+			LastModified:  "2017-03-30T13:09:06.48Z",
+		}}
 
-	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
-	allowedContentTypes := []string{"Article", "Video"}
-	config := MsgProcessorConfig{SupportedContentURIs: allowedUris, SupportedContentTypes: allowedContentTypes}
-	combiner := DummyDataCombiner{data: CombinedModel{
-		UUID:          "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-		ContentURI:    "http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-		MarkedDeleted: "true",
-		LastModified:  "2017-03-30T13:09:06.48Z",
-	}}
+		expMsg := producer.Message{
+			Headers: test.m.Headers,
+			Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","markedDeleted":"true","lastModified":"2017-03-30T13:09:06.48Z","content":null,"metadata":null}`,
+		}
 
-	expMsg := producer.Message{
-		Headers: m.Headers,
-		Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","markedDeleted":"true","lastModified":"2017-03-30T13:09:06.48Z","content":null,"metadata":null}`,
+		producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
+		p := MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
+
+		hook := testLogger.NewTestHook("combiner")
+		assert.Nil(t, hook.LastEntry())
+		assert.Equal(t, 0, len(hook.Entries))
+
+		p.processContentMsg(test.m)
+
+		assert.Equal(t, "info", hook.LastEntry().Level.String())
+		assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Mapped and sent for uuid: %v", test.m.Headers["X-Request-Id"], combiner.data.UUID))
+		assert.Equal(t, 1, len(hook.Entries))
 	}
-
-	producer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
-	p := MsgProcessor{config: config, DataCombiner: combiner, MsgProducer: producer}
-
-	hook := testLogger.NewTestHook("combiner")
-	assert.Nil(t, hook.LastEntry())
-	assert.Equal(t, 0, len(hook.Entries))
-
-	p.processContentMsg(m)
-
-	assert.Equal(t, "info", hook.LastEntry().Level.String())
-	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Mapped and sent for uuid: %v", m.Headers["X-Request-Id"], combiner.data.UUID))
-	assert.Equal(t, 1, len(hook.Entries))
 }
 
 func TestProcessMetadataMsg_UnSupportedOrigins(t *testing.T) {
