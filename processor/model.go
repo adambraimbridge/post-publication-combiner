@@ -50,7 +50,7 @@ func (cm ContentModel) getLastModified() string {
 }
 
 func getMapValueAsString(key string, data map[string]interface{}) string {
-	if val, ok := data[key]; ok {
+	if val, ok := data[key]; ok && val != nil {
 		return val.(string)
 	}
 	return ""
