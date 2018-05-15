@@ -188,7 +188,6 @@ func main() {
 		pQConf := processor.NewProducerConfig(*kafkaProxyAddress, *combinedTopic, *kafkaProxyRoutingHeader)
 		reindexingPQConf := processor.NewProducerConfig(*kafkaProxyAddress, *reindexingCombinedTopic, *kafkaProxyRoutingHeader)
 		processorConf := processor.NewMsgProcessorConfig(
-			*whitelistedContentTypes,
 			*whitelistedContentUris,
 			*whitelistedMetadataOriginSystemHeaders,
 			*contentTopic,
@@ -199,18 +198,18 @@ func main() {
 			messagesCh,
 			utils.ApiURL{BaseURL: *docStoreAPIBaseURL, Endpoint: *docStoreAPIEndpoint},
 			utils.ApiURL{BaseURL: *publicAnnotationsAPIBaseURL, Endpoint: *publicAnnotationsAPIEndpoint},
+			*whitelistedContentTypes,
 			&client,
 			processorConf)
-		reindexingMsgProcessor := processor.NewMsgProcessor(
+		reindexingMsgProcessor := processor.NewForcedMsgProcessor(
 			reindexingPQConf,
-			messagesCh,
 			utils.ApiURL{BaseURL: *docStoreAPIBaseURL, Endpoint: *docStoreAPIEndpoint},
 			utils.ApiURL{BaseURL: *publicAnnotationsAPIBaseURL, Endpoint: *publicAnnotationsAPIEndpoint},
-			&client,
-			processorConf)
+			*whitelistedContentTypes,
+			&client)
 		go msgProcessor.ProcessMessages()
 
-		routeRequests(port, &requestHandler{processor: reindexingMsgProcessor}, NewCombinerHealthcheck(msgProcessor.MsgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
+		routeRequests(port, &requestHandler{processor: reindexingMsgProcessor}, NewCombinerHealthcheck(reindexingMsgProcessor.Processor.MsgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
 	}
 
 	logger.Infof("PostPublicationCombiner is starting with args %v", os.Args)

@@ -13,7 +13,7 @@ const (
 )
 
 type requestHandler struct {
-	processor processor.Processor
+	processor processor.ForcedMsgProcessorI
 }
 
 func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *http.Request) {

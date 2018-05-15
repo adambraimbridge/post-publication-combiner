@@ -27,7 +27,7 @@ func TestPostMessage(t *testing.T) {
 		{"a78cf3ea-b221-46f8-8cbc-a61e5e454e88", "tid_1", processor.InvalidContentTypeError, 422},
 	}
 
-	p := &DummyProcessor{t: t}
+	p := &DummyForcedMsgProcessor{t: t}
 
 	rh := requestHandler{processor: p}
 	servicesRouter := mux.NewRouter()
@@ -57,18 +57,14 @@ func TestPostMessage(t *testing.T) {
 	}
 }
 
-type DummyProcessor struct {
+type DummyForcedMsgProcessor struct {
 	t    *testing.T
 	uuid string
 	tid  string
 	err  error
 }
 
-func (p *DummyProcessor) ProcessMessages() {
-	panic("implement me")
-}
-
-func (p *DummyProcessor) ForceMessagePublish(uuid, tid string) error {
+func (p *DummyForcedMsgProcessor) ForceMessagePublish(uuid, tid string) error {
 	assert.Equal(p.t, p.uuid, uuid)
 	assert.Equal(p.t, p.tid, tid)
 	return p.err
