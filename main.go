@@ -209,9 +209,8 @@ func main() {
 			&client,
 			processorConf)
 		go msgProcessor.ProcessMessages()
-		go reindexingMsgProcessor.ProcessMessages()
 
-		routeRequests(port, &requestHandler{processor: msgProcessor}, &requestHandler{processor: reindexingMsgProcessor}, NewCombinerHealthcheck(msgProcessor.MsgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
+		routeRequests(port, &requestHandler{processor: reindexingMsgProcessor}, NewCombinerHealthcheck(msgProcessor.MsgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
 	}
 
 	logger.Infof("PostPublicationCombiner is starting with args %v", os.Args)
@@ -222,7 +221,7 @@ func main() {
 	}
 }
 
-func routeRequests(port *string, requestHandler *requestHandler, reindexingRequestHandler *requestHandler, healthService *HealthcheckHandler) {
+func routeRequests(port *string, reindexingRequestHandler *requestHandler, healthService *HealthcheckHandler) {
 	r := http.NewServeMux()
 
 	r.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
@@ -249,8 +248,7 @@ func routeRequests(port *string, requestHandler *requestHandler, reindexingReque
 	r.Handle("/__health", handlers.MethodHandler{"GET": http.HandlerFunc(health.Handler(hc))})
 
 	servicesRouter := mux.NewRouter()
-	servicesRouter.HandleFunc("/{id}", requestHandler.postMessage).Methods("POST")
-	servicesRouter.HandleFunc("/reindexing/{id}", reindexingRequestHandler.postMessage).Methods("POST")
+	servicesRouter.HandleFunc("/{id}", reindexingRequestHandler.postMessage).Methods("POST")
 
 	var monitoringRouter http.Handler = servicesRouter
 	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(logger.Logger(), monitoringRouter)
