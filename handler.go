@@ -1,15 +1,15 @@
 package main
 
 import (
-	logger "github.com/Financial-Times/go-logger"
+	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/post-publication-combiner/processor"
 	"github.com/gorilla/mux"
-	"github.com/satori/go.uuid"
+	uuidLib "github.com/satori/go.uuid"
 	"net/http"
 )
 
 const (
-	idpathVar = "id"
+	idPathVar = "id"
 )
 
 type requestHandler struct {
@@ -17,7 +17,7 @@ type requestHandler struct {
 }
 
 func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *http.Request) {
-	uuid := mux.Vars(request)[idpathVar]
+	uuid := mux.Vars(request)[idPathVar]
 	transactionID := request.Header.Get("X-Request-Id")
 
 	defer request.Body.Close()
@@ -43,6 +43,6 @@ func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *
 }
 
 func isValidUUID(id string) bool {
-	_, err := uuid.FromString(id)
+	_, err := uuidLib.FromString(id)
 	return err == nil
 }

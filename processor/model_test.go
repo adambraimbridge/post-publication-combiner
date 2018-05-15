@@ -6,7 +6,7 @@ import (
 )
 
 func TestGetMapValueAsString(t *testing.T) {
-	assert := assert.New(t)
+	assertion := assert.New(t)
 	tests := []struct {
 		key      string
 		content  map[string]interface{}
@@ -20,12 +20,12 @@ func TestGetMapValueAsString(t *testing.T) {
 
 	for _, testCase := range tests {
 		value := getMapValueAsString(testCase.key, testCase.content)
-		assert.Equal(testCase.expValue, value)
+		assertion.Equal(testCase.expValue, value)
 	}
 }
 
 func TestGetIdentifiers(t *testing.T) {
-	assert := assert.New(t)
+	assertion := assert.New(t)
 	tests := []struct {
 		c      ContentModel
 		expIDs []Identifier
@@ -39,6 +39,6 @@ func TestGetIdentifiers(t *testing.T) {
 
 	for _, testCase := range tests {
 		arr := testCase.c.getIdentifiers()
-		assert.Equal(testCase.expIDs, arr)
+		assertion.Equal(testCase.expIDs, arr)
 	}
 }
