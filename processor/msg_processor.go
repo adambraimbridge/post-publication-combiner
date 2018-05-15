@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"strings"
 
-	logger "github.com/Financial-Times/go-logger"
+	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/dchest/uniuri"
 
-	uuidlib "github.com/satori/go.uuid"
+	uuidLib "github.com/satori/go.uuid"
 )
 
 const (
@@ -145,7 +145,7 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 		//handle delete events
 		sl := strings.Split(cm.ContentURI, "/")
 		uuid := sl[len(sl)-1]
-		if _, err := uuidlib.FromString(uuid); err != nil || uuid == "" {
+		if _, err := uuidLib.FromString(uuid); err != nil || uuid == "" {
 			logger.WithTransactionID(tid).WithError(err).Errorf("UUID couldn't be determined, skipping message with TID=%v.", tid)
 			return
 		}

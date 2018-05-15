@@ -149,9 +149,9 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 	tests := []struct {
 		metadata            Annotations
 		retrievedContent    ContentModel
-		retreivedContentErr error
+		retrievedContentErr error
 		retrievedAnn        []Annotation
-		retreivedAnnErr     error
+		retrievedAnnErr     error
 		expModel            CombinedModel
 		expError            error
 	}{
@@ -295,8 +295,8 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 
 	for _, testCase := range tests {
 		combiner := DataCombiner{
-			ContentRetriever:  DummyContentRetriever{testCase.retrievedContent, testCase.retreivedContentErr},
-			MetadataRetriever: DummyMetadataRetriever{testCase.retrievedAnn, testCase.retreivedAnnErr},
+			ContentRetriever:  DummyContentRetriever{testCase.retrievedContent, testCase.retrievedContentErr},
+			MetadataRetriever: DummyMetadataRetriever{testCase.retrievedAnn, testCase.retrievedAnnErr},
 		}
 
 		m, err := combiner.GetCombinedModelForAnnotations(testCase.metadata)
