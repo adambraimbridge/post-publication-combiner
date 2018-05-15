@@ -11,7 +11,7 @@ import (
 
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
-	"github.com/Financial-Times/go-logger"
+	logger "github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
@@ -50,11 +50,6 @@ func main() {
 		Name:   "combinedTopic",
 		Value:  "CombinedPostPublicationEvents",
 		EnvVar: "KAFKA_COMBINED_TOPIC_NAME",
-	})
-	reindexingCombinedTopic := app.String(cli.StringOpt{
-		Name:   "reindexingCombinedTopic",
-		Value:  "ReindexedCombinedPostPublicationEvents",
-		EnvVar: "KAFKA_REINDEXING_COMBINED_TOPIC_NAME",
 	})
 	kafkaProxyAddress := app.String(cli.StringOpt{
 		Name:   "kafkaProxyAddress",
@@ -186,7 +181,6 @@ func main() {
 
 		// process and forward messages
 		pQConf := processor.NewProducerConfig(*kafkaProxyAddress, *combinedTopic, *kafkaProxyRoutingHeader)
-		reindexingPQConf := processor.NewProducerConfig(*kafkaProxyAddress, *reindexingCombinedTopic, *kafkaProxyRoutingHeader)
 		processorConf := processor.NewMsgProcessorConfig(
 			*whitelistedContentTypes,
 			*whitelistedContentUris,
@@ -201,16 +195,9 @@ func main() {
 			utils.ApiURL{BaseURL: *publicAnnotationsAPIBaseURL, Endpoint: *publicAnnotationsAPIEndpoint},
 			&client,
 			processorConf)
-		reindexingMsgProcessor := processor.NewMsgProcessor(
-			reindexingPQConf,
-			messagesCh,
-			utils.ApiURL{BaseURL: *docStoreAPIBaseURL, Endpoint: *docStoreAPIEndpoint},
-			utils.ApiURL{BaseURL: *publicAnnotationsAPIBaseURL, Endpoint: *publicAnnotationsAPIEndpoint},
-			&client,
-			processorConf)
 		go msgProcessor.ProcessMessages()
 
-		routeRequests(port, &requestHandler{processor: reindexingMsgProcessor}, NewCombinerHealthcheck(msgProcessor.MsgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
+		routeRequests(port, &requestHandler{processor: msgProcessor}, NewCombinerHealthcheck(msgProcessor.MsgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
 	}
 
 	logger.Infof("PostPublicationCombiner is starting with args %v", os.Args)
@@ -221,7 +208,7 @@ func main() {
 	}
 }
 
-func routeRequests(port *string, reindexingRequestHandler *requestHandler, healthService *HealthcheckHandler) {
+func routeRequests(port *string, requestHandler *requestHandler, healthService *HealthcheckHandler) {
 	r := http.NewServeMux()
 
 	r.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
@@ -248,7 +235,7 @@ func routeRequests(port *string, reindexingRequestHandler *requestHandler, healt
 	r.Handle("/__health", handlers.MethodHandler{"GET": http.HandlerFunc(health.Handler(hc))})
 
 	servicesRouter := mux.NewRouter()
-	servicesRouter.HandleFunc("/{id}", reindexingRequestHandler.postMessage).Methods("POST")
+	servicesRouter.HandleFunc("/{id}", requestHandler.postMessage).Methods("POST")
 
 	var monitoringRouter http.Handler = servicesRouter
 	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(logger.Logger(), monitoringRouter)

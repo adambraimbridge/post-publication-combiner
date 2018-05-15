@@ -28,9 +28,6 @@ fixtures:
   /base_uri:
     delete:
       status: 200
-  /topics/ReindexedCombinedPostPublicationEvents:
-    post:
-      status: 200
   /topics/CombinedPostPublicationEvents:
     post:
       status: 200
