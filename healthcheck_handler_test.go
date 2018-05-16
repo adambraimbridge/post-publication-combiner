@@ -12,6 +12,7 @@ import (
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/stretchr/testify/assert"
+	"github.com/Financial-Times/go-fthealth/v1_1"
 )
 
 const (
@@ -79,6 +80,58 @@ func TestCheckIfPublicAnnotationsApiIsReachable_Succeeds(t *testing.T) {
 	assert.Equal(t, ResponseOK, resp)
 }
 
+func TestAllHealthChecks(t *testing.T) {
+	dc := dummyClient{
+		statusCode: http.StatusOK,
+		body:       "all good",
+	}
+	h := HealthcheckHandler{
+		publicAnnotationsAPIBaseURL: "pub-ann-base-url",
+		httpClient:                  &dc,
+		producer:                    &mockProducer{isConnectionHealthy: true},
+		consumer:                    &mockConsumer{isConnectionHealthy: true},
+	}
+	testCases := []struct {
+		description        string
+		healthcheckHandler HealthcheckHandler
+		healthcheckFunc    func(h *HealthcheckHandler) v1_1.Check
+		expectedResponse   string
+	}{
+		{
+			description:        "CombinedPostPublicationEvents messages are being forwarded to the queue",
+			healthcheckHandler: h,
+			healthcheckFunc:    checkKafkaProxyProducerConnectivity,
+			expectedResponse:   "",
+		},
+		{
+			description:        "PostPublicationEvents and PostMetadataPublicationEvents messages are received from the queue",
+			healthcheckHandler: h,
+			healthcheckFunc:    checkKafkaProxyConsumerConnectivity,
+			expectedResponse:   "",
+		},
+		{
+			description:        "Document-store-api is reachable",
+			healthcheckHandler: h,
+			healthcheckFunc:    checkDocumentStoreAPIHealthcheck,
+			expectedResponse:   ResponseOK,
+		},
+		{
+			description:        "Public-annotations-api is reachable",
+			healthcheckHandler: h,
+			healthcheckFunc:    checkPublicAnnotationsAPIHealthcheck,
+			expectedResponse:   ResponseOK,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			resp, err := tc.healthcheckFunc(&h).Checker()
+			assert.Nil(t, err)
+			assert.Equal(t, tc.expectedResponse, resp)
+		})
+	}
+}
+
 func TestGTG_Good(t *testing.T) {
 	dc := dummyClient{
 		statusCode: http.StatusOK,
@@ -138,14 +191,8 @@ func TestGTG_Bad(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			server := getMockedServer(tc.docStoreAPIStatus, tc.pubAnnAPIStatus)
 			defer server.Close()
-
-			h := HealthcheckHandler{
-				httpClient:                  http.DefaultClient,
-				producer:                    tc.producer,
-				consumer:                    tc.consumer,
-				docStoreAPIBaseURL:          server.URL + DocStoreAPIPath,
-				publicAnnotationsAPIBaseURL: server.URL + PublicAnnotationsAPIPath,
-			}
+			h := NewCombinerHealthcheck(tc.producer, tc.consumer, http.DefaultClient, server.URL+DocStoreAPIPath,
+				server.URL+PublicAnnotationsAPIPath)
 
 			status := h.GTG()
 			assert.False(t, status.GoodToGo)

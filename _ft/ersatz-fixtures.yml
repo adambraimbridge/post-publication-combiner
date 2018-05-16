@@ -31,6 +31,9 @@ fixtures:
   /topics/CombinedPostPublicationEvents:
     post:
       status: 200
+  /topics/ForcedCombinedPostPublicationEvents:
+    post:
+      status: 200
   /base_uri/offsets:
     post:
       status: 200
