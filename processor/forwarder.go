@@ -6,20 +6,23 @@ import (
 	"encoding/json"
 )
 
-type Processor struct {
+const (
+	CombinerMessageType = "cms-combined-content-published"
+)
+
+type Forwarder struct {
 	MsgProducer           producer.MessageProducer
 	SupportedContentTypes []string
 }
 
-func NewProcessor(msgProducer producer.MessageProducer, supportedContentTypes []string) Processor {
-	return Processor{
+func NewForwarder(msgProducer producer.MessageProducer, supportedContentTypes []string) Forwarder {
+	return Forwarder{
 		MsgProducer:           msgProducer,
 		SupportedContentTypes: supportedContentTypes,
 	}
 }
 
-
-func (p *Processor) filterAndForwardMsg(headers map[string]string, combinedMSG *CombinedModel, tid string) error {
+func (p *Forwarder) filterAndForwardMsg(headers map[string]string, combinedMSG *CombinedModel, tid string) error {
 
 	if combinedMSG.Content != nil && !isTypeAllowed(p.SupportedContentTypes, combinedMSG.Content.getType()) {
 		logger.WithTransactionID(tid).Infof("%v - Skipped unsupported content with type: %v", tid, combinedMSG.Content.getType())
@@ -40,7 +43,7 @@ func isTypeAllowed(allowedTypes []string, value string) bool {
 	return contains(allowedTypes, value)
 }
 
-func (p *Processor) forwardMsg(headers map[string]string, model *CombinedModel) error {
+func (p *Forwarder) forwardMsg(headers map[string]string, model *CombinedModel) error {
 	// marshall message
 	b, err := json.Marshal(model)
 	if err != nil {

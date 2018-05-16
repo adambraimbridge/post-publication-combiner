@@ -3,22 +3,14 @@ package processor
 import (
 	"encoding/json"
 	"errors"
-	"net/http"
 	"strings"
 
-	logger "github.com/Financial-Times/go-logger"
+	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/dchest/uniuri"
 
 	uuidlib "github.com/satori/go.uuid"
-)
-
-const (
-	CombinerMessageType = "cms-combined-content-published"
-	CombinerOrigin      = "forced-combined-msg"
-	ContentType         = "application/json"
 )
 
 var (
@@ -28,10 +20,9 @@ var (
 
 type MsgProcessor struct {
 	src          <-chan *KafkaQMessage
-	client       *http.Client
 	config       MsgProcessorConfig
 	DataCombiner DataCombinerI
-	Processor    Processor
+	Processor    Forwarder
 }
 
 type MsgProcessorConfig struct {
@@ -50,17 +41,8 @@ func NewMsgProcessorConfig(supportedURIs []string, supportedHeaders []string, co
 	}
 }
 
-func NewMsgProcessor(prodConf producer.MessageProducerConfig, srcCh <-chan *KafkaQMessage, docStoreApiUrl utils.ApiURL, annApiUrl utils.ApiURL, whitelistedContentTypes []string, c *http.Client, config MsgProcessorConfig) *MsgProcessor {
-	p := producer.NewMessageProducerWithHTTPClient(prodConf, c)
-
-	var cRetriever contentRetrieverI = dataRetriever{docStoreApiUrl, c}
-	var mRetriever metadataRetrieverI = dataRetriever{annApiUrl, c}
-
-	var combiner DataCombinerI = DataCombiner{
-		ContentRetriever:  cRetriever,
-		MetadataRetriever: mRetriever,
-	}
-	return &MsgProcessor{src: srcCh, config: config, client: c, DataCombiner: combiner, Processor: NewProcessor(p, whitelistedContentTypes)}
+func NewMsgProcessor(srcCh <-chan *KafkaQMessage, config MsgProcessorConfig, dataCombiner DataCombinerI, producer producer.MessageProducer, whitelistedContentTypes []string) *MsgProcessor {
+	return &MsgProcessor{src: srcCh, config: config, DataCombiner: dataCombiner, Processor: NewForwarder(producer, whitelistedContentTypes)}
 }
 
 func NewProducerConfig(proxyAddress string, topic string, routingHeader string) producer.MessageProducerConfig {

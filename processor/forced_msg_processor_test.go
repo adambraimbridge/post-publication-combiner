@@ -40,7 +40,7 @@ func TestForceMessageWithTID(t *testing.T) {
 	}
 
 	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: dummyDataCombiner.data.UUID, expTID: tid, expMsg: expMsg}
-	p := &ForcedMsgProcessor{DataCombiner: dummyDataCombiner, Processor: NewProcessor(dummyMsgProducer, allowedContentTypes)}
+	p := &ForcedMsgProcessor{DataCombiner: dummyDataCombiner, Processor: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("dummyDataCombiner")
 	assert.Nil(t, hook.LastEntry())
@@ -86,7 +86,7 @@ func TestForceMessageWithoutTID(t *testing.T) {
 	}
 
 	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: dummyDataCombiner.data.UUID, expMsg: expMsg}
-	p := &ForcedMsgProcessor{DataCombiner: dummyDataCombiner, Processor: NewProcessor(dummyMsgProducer, allowedContentTypes)}
+	p := &ForcedMsgProcessor{DataCombiner: dummyDataCombiner, Processor: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("dummyDataCombiner")
 	assert.Nil(t, hook.LastEntry())
@@ -108,7 +108,7 @@ func TestForceMessageCombinerError(t *testing.T) {
 		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":"","content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
 	}
 	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
-	p := &ForcedMsgProcessor{DataCombiner: combiner, Processor: NewProcessor(dummyMsgProducer, allowedContentTypes)}
+	p := &ForcedMsgProcessor{DataCombiner: combiner, Processor: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
@@ -132,7 +132,7 @@ func TestForceMessageNotFoundError(t *testing.T) {
 	}
 	combiner := DummyDataCombiner{}
 	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
-	p := &ForcedMsgProcessor{DataCombiner: combiner, Processor: NewProcessor(dummyMsgProducer, allowedContentTypes)}
+	p := &ForcedMsgProcessor{DataCombiner: combiner, Processor: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
@@ -177,7 +177,7 @@ func TestForceMessage_FilteringError(t *testing.T) {
 		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":"","content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
 	}
 	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
-	p := &ForcedMsgProcessor{DataCombiner: combiner, Processor: NewProcessor(dummyMsgProducer, allowedContentTypes)}
+	p := &ForcedMsgProcessor{DataCombiner: combiner, Processor: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
@@ -217,7 +217,7 @@ func TestForceMessageProducerError(t *testing.T) {
 			},
 		}}
 	dummyMsgProducer := DummyMsgProducer{t: t, expError: errors.New("some error")}
-	p := &ForcedMsgProcessor{DataCombiner: dummyDataCombiner, Processor: NewProcessor(dummyMsgProducer, allowedContentTypes)}
+	p := &ForcedMsgProcessor{DataCombiner: dummyDataCombiner, Processor: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("dummyDataCombiner")
 	assert.Nil(t, hook.LastEntry())

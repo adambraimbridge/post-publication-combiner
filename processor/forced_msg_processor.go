@@ -1,11 +1,14 @@
 package processor
 
 import (
-	"net/http"
 	"github.com/Financial-Times/go-logger"
-	"github.com/Financial-Times/post-publication-combiner/utils"
 	"github.com/dchest/uniuri"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
+)
+
+const (
+	CombinerOrigin = "forced-combined-msg"
+	ContentType    = "application/json"
 )
 
 type ForcedMsgProcessorI interface {
@@ -13,22 +16,12 @@ type ForcedMsgProcessorI interface {
 }
 
 type ForcedMsgProcessor struct {
-	client       *http.Client
 	DataCombiner DataCombinerI
-	Processor    Processor
+	Processor    Forwarder
 }
 
-func NewForcedMsgProcessor(prodConf producer.MessageProducerConfig, docStoreApiUrl utils.ApiURL, annApiUrl utils.ApiURL, whitelistedContentTypes []string, c *http.Client) *ForcedMsgProcessor {
-	p := producer.NewMessageProducerWithHTTPClient(prodConf, c)
-
-	var cRetriever contentRetrieverI = dataRetriever{docStoreApiUrl, c}
-	var mRetriever metadataRetrieverI = dataRetriever{annApiUrl, c}
-
-	var combiner DataCombinerI = DataCombiner{
-		ContentRetriever:  cRetriever,
-		MetadataRetriever: mRetriever,
-	}
-	return &ForcedMsgProcessor{client: c, DataCombiner: combiner, Processor: NewProcessor(p, whitelistedContentTypes)}
+func NewForcedMsgProcessor(dataCombiner DataCombinerI, producer producer.MessageProducer, whitelistedContentTypes []string) *ForcedMsgProcessor {
+	return &ForcedMsgProcessor{DataCombiner: dataCombiner, Processor: NewForwarder(producer, whitelistedContentTypes)}
 }
 
 func (p *ForcedMsgProcessor) ForceMessagePublish(uuid string, tid string) error {

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	idpathVar = "id"
+	idPathVar = "id"
 )
 
 type requestHandler struct {
@@ -17,7 +17,7 @@ type requestHandler struct {
 }
 
 func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *http.Request) {
-	uuid := mux.Vars(request)[idpathVar]
+	uuid := mux.Vars(request)[idPathVar]
 	transactionID := request.Header.Get("X-Request-Id")
 
 	defer request.Body.Close()

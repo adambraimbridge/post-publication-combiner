@@ -19,6 +19,7 @@ type DataCombiner struct {
 	MetadataRetriever metadataRetrieverI
 }
 
+
 type contentRetrieverI interface {
 	getContent(uuid string) (ContentModel, error)
 }
@@ -30,6 +31,16 @@ type metadataRetrieverI interface {
 type dataRetriever struct {
 	Address utils.ApiURL
 	client  utils.Client
+}
+
+func NewDataCombiner(docStoreApiUrl utils.ApiURL, annApiUrl utils.ApiURL, c utils.Client) DataCombinerI {
+	var cRetriever contentRetrieverI = dataRetriever{docStoreApiUrl, c}
+	var mRetriever metadataRetrieverI = dataRetriever{annApiUrl, c}
+
+	return DataCombiner{
+		ContentRetriever:  cRetriever,
+		MetadataRetriever: mRetriever,
+	}
 }
 
 func (dc DataCombiner) GetCombinedModelForContent(content ContentModel) (CombinedModel, error) {

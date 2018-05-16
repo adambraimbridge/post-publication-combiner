@@ -22,6 +22,7 @@ import (
 
 	"github.com/Financial-Times/post-publication-combiner/processor"
 	"github.com/Financial-Times/post-publication-combiner/utils"
+	"github.com/Financial-Times/message-queue-go-producer/producer"
 )
 
 const serviceName = "post-publication-combiner"
@@ -185,8 +186,11 @@ func main() {
 		defer mc.Consumer.Stop()
 
 		// process and forward messages
+		dataCombiner := processor.NewDataCombiner(utils.ApiURL{BaseURL: *docStoreAPIBaseURL, Endpoint: *docStoreAPIEndpoint},
+			utils.ApiURL{BaseURL: *publicAnnotationsAPIBaseURL, Endpoint: *publicAnnotationsAPIEndpoint}, &client)
+
 		pQConf := processor.NewProducerConfig(*kafkaProxyAddress, *combinedTopic, *kafkaProxyRoutingHeader)
-		forcedPQConf := processor.NewProducerConfig(*kafkaProxyAddress, *forcedCombinedTopic, *kafkaProxyRoutingHeader)
+		msgProducer := producer.NewMessageProducerWithHTTPClient(pQConf, &client)
 		processorConf := processor.NewMsgProcessorConfig(
 			*whitelistedContentUris,
 			*whitelistedMetadataOriginSystemHeaders,
@@ -194,21 +198,19 @@ func main() {
 			*metadataTopic,
 		)
 		msgProcessor := processor.NewMsgProcessor(
-			pQConf,
 			messagesCh,
-			utils.ApiURL{BaseURL: *docStoreAPIBaseURL, Endpoint: *docStoreAPIEndpoint},
-			utils.ApiURL{BaseURL: *publicAnnotationsAPIBaseURL, Endpoint: *publicAnnotationsAPIEndpoint},
-			*whitelistedContentTypes,
-			&client,
-			processorConf)
-		forcedMsgProcessor := processor.NewForcedMsgProcessor(
-			forcedPQConf,
-			utils.ApiURL{BaseURL: *docStoreAPIBaseURL, Endpoint: *docStoreAPIEndpoint},
-			utils.ApiURL{BaseURL: *publicAnnotationsAPIBaseURL, Endpoint: *publicAnnotationsAPIEndpoint},
-			*whitelistedContentTypes,
-			&client)
+			processorConf,
+			dataCombiner,
+			msgProducer,
+			*whitelistedContentTypes)
 		go msgProcessor.ProcessMessages()
 
+		forcedPQConf := processor.NewProducerConfig(*kafkaProxyAddress, *forcedCombinedTopic, *kafkaProxyRoutingHeader)
+		forcedMsgProducer := producer.NewMessageProducerWithHTTPClient(forcedPQConf, &client)
+		forcedMsgProcessor := processor.NewForcedMsgProcessor(
+			dataCombiner,
+			forcedMsgProducer,
+			*whitelistedContentTypes)
 		routeRequests(port, &requestHandler{processor: forcedMsgProcessor}, NewCombinerHealthcheck(forcedMsgProcessor.Processor.MsgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
 	}
 
