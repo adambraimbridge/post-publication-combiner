@@ -118,7 +118,7 @@ func TestProcessContentMsg_Forwarder_Errors(t *testing.T) {
 	}
 	dummyMsgProducer := DummyMsgProducer{t: t, expError: errors.New("some dummyMsgProducer error")}
 
-	p := &MsgProcessor{config: config, DataCombiner: dummyDataCombiner, Processor: NewForwarder(dummyMsgProducer, allowedContentTypes)}
+	p := &MsgProcessor{config: config, DataCombiner: dummyDataCombiner, Forwarder: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("dummyDataCombiner")
 	assert.Nil(t, hook.LastEntry())
@@ -161,7 +161,7 @@ func TestProcessContentMsg_Successfully_Forwarded(t *testing.T) {
 	}
 
 	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: dummyDataCombiner.data.UUID, expMsg: expMsg}
-	p := &MsgProcessor{config: config, DataCombiner: dummyDataCombiner, Processor: NewForwarder(dummyMsgProducer, allowedContentTypes)}
+	p := &MsgProcessor{config: config, DataCombiner: dummyDataCombiner, Forwarder: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("dummyDataCombiner")
 	assert.Nil(t, hook.LastEntry())
@@ -212,7 +212,7 @@ func TestProcessContentMsg_DeleteEvent_Successfully_Forwarded(t *testing.T) {
 		}
 
 		dummyMsgProducer := DummyMsgProducer{t: t, expUUID: dummyDataCombiner.data.UUID, expMsg: expMsg}
-		p := MsgProcessor{config: config, DataCombiner: dummyDataCombiner, Processor: NewForwarder(dummyMsgProducer, allowedContentTypes)}
+		p := MsgProcessor{config: config, DataCombiner: dummyDataCombiner, Forwarder: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 		hook := testLogger.NewTestHook("dummyDataCombiner")
 		assert.Nil(t, hook.LastEntry())
@@ -303,7 +303,7 @@ func TestProcessMetadataMsg_Forwarder_Errors(t *testing.T) {
 	dummyDataCombiner := DummyDataCombiner{data: CombinedModel{UUID: "some_uuid"}}
 	dummyMsgProducer := DummyMsgProducer{t: t, expError: errors.New("some dummyMsgProducer error")}
 
-	p := &MsgProcessor{config: config, DataCombiner: dummyDataCombiner, Processor: NewForwarder(dummyMsgProducer, allowedContentTypes)}
+	p := &MsgProcessor{config: config, DataCombiner: dummyDataCombiner, Forwarder: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("dummyDataCombiner")
 	assert.Nil(t, hook.LastEntry())
@@ -354,7 +354,7 @@ func TestProcessMetadataMsg_Successfully_Forwarded(t *testing.T) {
 	}
 
 	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: dummyDataCombiner.data.UUID, expMsg: expMsg}
-	p := &MsgProcessor{config: config, DataCombiner: dummyDataCombiner, Processor: NewForwarder(dummyMsgProducer, allowedContentTypes)}
+	p := &MsgProcessor{config: config, DataCombiner: dummyDataCombiner, Forwarder: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("dummyDataCombiner")
 	assert.Nil(t, hook.LastEntry())
@@ -400,7 +400,7 @@ func TestForwardMsg(t *testing.T) {
 		assert.Nil(t, err)
 
 		q := MsgProcessor{
-			Processor: Forwarder{
+			Forwarder: Forwarder{
 				MsgProducer: DummyMsgProducer{
 					t:        t,
 					expUUID:  testCase.uuid,
@@ -413,7 +413,7 @@ func TestForwardMsg(t *testing.T) {
 			},
 		}
 
-		err = q.Processor.forwardMsg(testCase.headers, &model)
+		err = q.Forwarder.forwardMsg(testCase.headers, &model)
 		assert.Equal(t, testCase.err, err)
 	}
 }

@@ -22,6 +22,14 @@ func NewForwarder(msgProducer producer.MessageProducer, supportedContentTypes []
 	}
 }
 
+func NewProducerConfig(proxyAddress string, topic string, routingHeader string) producer.MessageProducerConfig {
+	return producer.MessageProducerConfig{
+		Addr:  proxyAddress,
+		Topic: topic,
+		Queue: routingHeader,
+	}
+}
+
 func (p *Forwarder) filterAndForwardMsg(headers map[string]string, combinedMSG *CombinedModel, tid string) error {
 
 	if combinedMSG.Content != nil && !isTypeAllowed(p.SupportedContentTypes, combinedMSG.Content.getType()) {

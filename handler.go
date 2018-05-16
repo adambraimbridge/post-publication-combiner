@@ -13,7 +13,7 @@ const (
 )
 
 type requestHandler struct {
-	processor processor.ForcedMsgProcessorI
+	requestProcessor processor.RequestProcessorI
 }
 
 func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *http.Request) {
@@ -28,7 +28,7 @@ func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *
 		return
 	}
 
-	err := handler.processor.ForceMessagePublish(uuid, transactionID)
+	err := handler.requestProcessor.ForceMessagePublish(uuid, transactionID)
 	switch err {
 	case nil:
 		writer.WriteHeader(http.StatusOK)

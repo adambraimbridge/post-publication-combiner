@@ -205,13 +205,14 @@ func main() {
 			*whitelistedContentTypes)
 		go msgProcessor.ProcessMessages()
 
+		// process requested messages - used for reindexing and forced requests
 		forcedPQConf := processor.NewProducerConfig(*kafkaProxyAddress, *forcedCombinedTopic, *kafkaProxyRoutingHeader)
 		forcedMsgProducer := producer.NewMessageProducerWithHTTPClient(forcedPQConf, &client)
-		forcedMsgProcessor := processor.NewForcedMsgProcessor(
+		requestProcessor := processor.NewRequestProcessor(
 			dataCombiner,
 			forcedMsgProducer,
 			*whitelistedContentTypes)
-		routeRequests(port, &requestHandler{processor: forcedMsgProcessor}, NewCombinerHealthcheck(forcedMsgProcessor.Processor.MsgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
+		routeRequests(port, &requestHandler{requestProcessor: requestProcessor}, NewCombinerHealthcheck(requestProcessor.Forwarder.MsgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
 	}
 
 	logger.Infof("PostPublicationCombiner is starting with args %v", os.Args)
@@ -222,7 +223,7 @@ func main() {
 	}
 }
 
-func routeRequests(port *string, forcedRequestHandler *requestHandler, healthService *HealthcheckHandler) {
+func routeRequests(port *string, requestHandler *requestHandler, healthService *HealthcheckHandler) {
 	r := http.NewServeMux()
 
 	r.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
@@ -249,7 +250,7 @@ func routeRequests(port *string, forcedRequestHandler *requestHandler, healthSer
 	r.Handle("/__health", handlers.MethodHandler{"GET": http.HandlerFunc(health.Handler(hc))})
 
 	servicesRouter := mux.NewRouter()
-	servicesRouter.HandleFunc("/{id}", forcedRequestHandler.postMessage).Methods("POST")
+	servicesRouter.HandleFunc("/{id}", requestHandler.postMessage).Methods("POST")
 
 	var monitoringRouter http.Handler = servicesRouter
 	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(logger.Logger(), monitoringRouter)

@@ -11,20 +11,20 @@ const (
 	ContentType    = "application/json"
 )
 
-type ForcedMsgProcessorI interface {
+type RequestProcessorI interface {
 	ForceMessagePublish(uuid string, tid string) error
 }
 
-type ForcedMsgProcessor struct {
+type RequestProcessor struct {
 	DataCombiner DataCombinerI
-	Processor    Forwarder
+	Forwarder    Forwarder
 }
 
-func NewForcedMsgProcessor(dataCombiner DataCombinerI, producer producer.MessageProducer, whitelistedContentTypes []string) *ForcedMsgProcessor {
-	return &ForcedMsgProcessor{DataCombiner: dataCombiner, Processor: NewForwarder(producer, whitelistedContentTypes)}
+func NewRequestProcessor(dataCombiner DataCombinerI, producer producer.MessageProducer, whitelistedContentTypes []string) *RequestProcessor {
+	return &RequestProcessor{DataCombiner: dataCombiner, Forwarder: NewForwarder(producer, whitelistedContentTypes)}
 }
 
-func (p *ForcedMsgProcessor) ForceMessagePublish(uuid string, tid string) error {
+func (p *RequestProcessor) ForceMessagePublish(uuid string, tid string) error {
 
 	if tid == "" {
 		tid = "tid_force_publish" + uniuri.NewLen(10) + "_post_publication_combiner"
@@ -51,5 +51,5 @@ func (p *ForcedMsgProcessor) ForceMessagePublish(uuid string, tid string) error 
 	}
 
 	//forward data
-	return p.Processor.filterAndForwardMsg(h, &combinedMSG, tid)
+	return p.Forwarder.filterAndForwardMsg(h, &combinedMSG, tid)
 }

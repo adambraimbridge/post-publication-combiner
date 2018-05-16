@@ -22,7 +22,7 @@ type MsgProcessor struct {
 	src          <-chan *KafkaQMessage
 	config       MsgProcessorConfig
 	DataCombiner DataCombinerI
-	Processor    Forwarder
+	Forwarder    Forwarder
 }
 
 type MsgProcessorConfig struct {
@@ -42,15 +42,7 @@ func NewMsgProcessorConfig(supportedURIs []string, supportedHeaders []string, co
 }
 
 func NewMsgProcessor(srcCh <-chan *KafkaQMessage, config MsgProcessorConfig, dataCombiner DataCombinerI, producer producer.MessageProducer, whitelistedContentTypes []string) *MsgProcessor {
-	return &MsgProcessor{src: srcCh, config: config, DataCombiner: dataCombiner, Processor: NewForwarder(producer, whitelistedContentTypes)}
-}
-
-func NewProducerConfig(proxyAddress string, topic string, routingHeader string) producer.MessageProducerConfig {
-	return producer.MessageProducerConfig{
-		Addr:  proxyAddress,
-		Topic: topic,
-		Queue: routingHeader,
-	}
+	return &MsgProcessor{src: srcCh, config: config, DataCombiner: dataCombiner, Forwarder: NewForwarder(producer, whitelistedContentTypes)}
 }
 
 func (p *MsgProcessor) ProcessMessages() {
@@ -118,7 +110,7 @@ func (p *MsgProcessor) processContentMsg(m consumer.Message) {
 	}
 
 	//forward data
-	p.Processor.filterAndForwardMsg(m.Headers, &combinedMSG, tid)
+	p.Forwarder.filterAndForwardMsg(m.Headers, &combinedMSG, tid)
 }
 
 func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
@@ -147,7 +139,7 @@ func (p *MsgProcessor) processMetadataMsg(m consumer.Message) {
 		logger.WithTransactionID(tid).WithError(err).Errorf("%v - Error obtaining the combined message. Content couldn't get read. Message will be skipped.", tid)
 		return
 	}
-	p.Processor.filterAndForwardMsg(m.Headers, &combinedMSG, tid)
+	p.Forwarder.filterAndForwardMsg(m.Headers, &combinedMSG, tid)
 }
 
 func extractTID(headers map[string]string) string {
