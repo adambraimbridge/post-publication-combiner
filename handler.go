@@ -9,15 +9,15 @@ import (
 )
 
 const (
-	idpathVar = "id"
+	idPathVar = "id"
 )
 
 type requestHandler struct {
-	processor processor.Processor
+	requestProcessor processor.RequestProcessorI
 }
 
 func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *http.Request) {
-	uuid := mux.Vars(request)[idpathVar]
+	uuid := mux.Vars(request)[idPathVar]
 	transactionID := request.Header.Get("X-Request-Id")
 
 	defer request.Body.Close()
@@ -28,7 +28,7 @@ func (handler *requestHandler) postMessage(writer http.ResponseWriter, request *
 		return
 	}
 
-	err := handler.processor.ForceMessagePublish(uuid, transactionID)
+	err := handler.requestProcessor.ForceMessagePublish(uuid, transactionID)
 	switch err {
 	case nil:
 		writer.WriteHeader(http.StatusOK)

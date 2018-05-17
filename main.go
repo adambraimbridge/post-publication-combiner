@@ -11,7 +11,7 @@ import (
 
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
-	logger "github.com/Financial-Times/go-logger"
+	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
@@ -20,6 +20,7 @@ import (
 	"github.com/jawher/mow.cli"
 	"github.com/rcrowley/go-metrics"
 
+	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/post-publication-combiner/processor"
 	"github.com/Financial-Times/post-publication-combiner/utils"
 )
@@ -50,6 +51,11 @@ func main() {
 		Name:   "combinedTopic",
 		Value:  "CombinedPostPublicationEvents",
 		EnvVar: "KAFKA_COMBINED_TOPIC_NAME",
+	})
+	forcedCombinedTopic := app.String(cli.StringOpt{
+		Name:   "forcedCombinedTopic",
+		Value:  "ForcedCombinedPostPublicationEvents",
+		EnvVar: "KAFKA_FORCED_COMBINED_TOPIC_NAME",
 	})
 	kafkaProxyAddress := app.String(cli.StringOpt{
 		Name:   "kafkaProxyAddress",
@@ -180,24 +186,35 @@ func main() {
 		defer mc.Consumer.Stop()
 
 		// process and forward messages
+		dataCombiner := processor.NewDataCombiner(utils.ApiURL{BaseURL: *docStoreAPIBaseURL, Endpoint: *docStoreAPIEndpoint},
+			utils.ApiURL{BaseURL: *publicAnnotationsAPIBaseURL, Endpoint: *publicAnnotationsAPIEndpoint}, &client)
+
 		pQConf := processor.NewProducerConfig(*kafkaProxyAddress, *combinedTopic, *kafkaProxyRoutingHeader)
+		msgProducer := producer.NewMessageProducerWithHTTPClient(pQConf, &client)
 		processorConf := processor.NewMsgProcessorConfig(
-			*whitelistedContentTypes,
 			*whitelistedContentUris,
 			*whitelistedMetadataOriginSystemHeaders,
 			*contentTopic,
 			*metadataTopic,
 		)
 		msgProcessor := processor.NewMsgProcessor(
-			pQConf,
 			messagesCh,
-			utils.ApiURL{BaseURL: *docStoreAPIBaseURL, Endpoint: *docStoreAPIEndpoint},
-			utils.ApiURL{BaseURL: *publicAnnotationsAPIBaseURL, Endpoint: *publicAnnotationsAPIEndpoint},
-			&client,
-			processorConf)
+			processorConf,
+			dataCombiner,
+			msgProducer,
+			*whitelistedContentTypes)
 		go msgProcessor.ProcessMessages()
 
-		routeRequests(port, &requestHandler{processor: msgProcessor}, NewCombinerHealthcheck(msgProcessor.MsgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
+		// process requested messages - used for reindexing and forced requests
+		forcedPQConf := processor.NewProducerConfig(*kafkaProxyAddress, *forcedCombinedTopic, *kafkaProxyRoutingHeader)
+		forcedMsgProducer := producer.NewMessageProducerWithHTTPClient(forcedPQConf, &client)
+		requestProcessor := processor.NewRequestProcessor(
+			dataCombiner,
+			forcedMsgProducer,
+			*whitelistedContentTypes)
+
+		// Since the health check for all producers and consumers just checks /topics for a response, we pick a producer and a consumer at random
+		routeRequests(port, &requestHandler{requestProcessor: requestProcessor}, NewCombinerHealthcheck(msgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
 	}
 
 	logger.Infof("PostPublicationCombiner is starting with args %v", os.Args)

@@ -32,6 +32,16 @@ type dataRetriever struct {
 	client  utils.Client
 }
 
+func NewDataCombiner(docStoreApiUrl utils.ApiURL, annApiUrl utils.ApiURL, c utils.Client) DataCombinerI {
+	var cRetriever contentRetrieverI = dataRetriever{docStoreApiUrl, c}
+	var mRetriever metadataRetrieverI = dataRetriever{annApiUrl, c}
+
+	return DataCombiner{
+		ContentRetriever:  cRetriever,
+		MetadataRetriever: mRetriever,
+	}
+}
+
 func (dc DataCombiner) GetCombinedModelForContent(content ContentModel) (CombinedModel, error) {
 
 	if content.getUUID() == "" {

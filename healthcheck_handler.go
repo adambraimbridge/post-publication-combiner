@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	health "github.com/Financial-Times/go-fthealth/v1_1"
-	logger "github.com/Financial-Times/go-logger"
+	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
 	"github.com/Financial-Times/service-status-go/gtg"
@@ -37,11 +37,11 @@ func NewCombinerHealthcheck(p producer.MessageProducer, c consumer.MessageConsum
 
 func checkKafkaProxyProducerConnectivity(h *HealthcheckHandler) health.Check {
 	return health.Check{
-		BusinessImpact:   "Can't write CombinedPostPublicationEvents messages to queue. Indexing for search won't work.",
+		BusinessImpact:   "Can't write CombinedPostPublicationEvents and ForcedCombinedPostPublicationEvents messages to queue. Indexing for search won't work.",
 		Name:             "Check connectivity to the kafka-proxy",
 		PanicGuide:       "https://dewey.ft.com/post-publication-combiner.html",
 		Severity:         2,
-		TechnicalSummary: "CombinedPostPublicationEvents messages can't be forwarded to the queue. Check if kafka-proxy is reachable.",
+		TechnicalSummary: "CombinedPostPublicationEvents and ForcedCombinedPostPublicationEvents messages can't be forwarded to the queue. Check if kafka-proxy is reachable.",
 		Checker:          h.producer.ConnectivityCheck,
 	}
 }

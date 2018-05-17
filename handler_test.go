@@ -27,9 +27,9 @@ func TestPostMessage(t *testing.T) {
 		{"a78cf3ea-b221-46f8-8cbc-a61e5e454e88", "tid_1", processor.InvalidContentTypeError, 422},
 	}
 
-	p := &DummyProcessor{t: t}
+	dummyRequestProcessor := &DummyRequestProcessor{t: t}
 
-	rh := requestHandler{processor: p}
+	rh := requestHandler{requestProcessor: dummyRequestProcessor}
 	servicesRouter := mux.NewRouter()
 	servicesRouter.HandleFunc("/{id}", rh.postMessage).Methods("POST")
 
@@ -41,9 +41,9 @@ func TestPostMessage(t *testing.T) {
 	defer server.Close()
 
 	for _, testCase := range tests {
-		p.uuid = testCase.uuid
-		p.tid = testCase.tid
-		p.err = testCase.err
+		dummyRequestProcessor.uuid = testCase.uuid
+		dummyRequestProcessor.tid = testCase.tid
+		dummyRequestProcessor.err = testCase.err
 
 		req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", server.URL, testCase.uuid), nil)
 		assert.NoError(t, err)
@@ -57,18 +57,14 @@ func TestPostMessage(t *testing.T) {
 	}
 }
 
-type DummyProcessor struct {
+type DummyRequestProcessor struct {
 	t    *testing.T
 	uuid string
 	tid  string
 	err  error
 }
 
-func (p *DummyProcessor) ProcessMessages() {
-	panic("implement me")
-}
-
-func (p *DummyProcessor) ForceMessagePublish(uuid, tid string) error {
+func (p *DummyRequestProcessor) ForceMessagePublish(uuid, tid string) error {
 	assert.Equal(p.t, p.uuid, uuid)
 	assert.Equal(p.t, p.tid, tid)
 	return p.err
