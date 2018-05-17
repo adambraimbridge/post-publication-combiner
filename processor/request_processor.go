@@ -2,8 +2,8 @@ package processor
 
 import (
 	"github.com/Financial-Times/go-logger"
-	"github.com/dchest/uniuri"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
+	"github.com/dchest/uniuri"
 )
 
 const (

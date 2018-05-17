@@ -19,7 +19,6 @@ type DataCombiner struct {
 	MetadataRetriever metadataRetrieverI
 }
 
-
 type contentRetrieverI interface {
 	getContent(uuid string) (ContentModel, error)
 }

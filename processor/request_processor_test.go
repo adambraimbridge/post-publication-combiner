@@ -1,12 +1,12 @@
 package processor
 
 import (
-	"github.com/Financial-Times/message-queue-go-producer/producer"
-	"fmt"
-	"testing"
-	testLogger "github.com/Financial-Times/go-logger/test"
-	"github.com/stretchr/testify/assert"
 	"errors"
+	"fmt"
+	testLogger "github.com/Financial-Times/go-logger/test"
+	"github.com/Financial-Times/message-queue-go-producer/producer"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestForceMessageWithTID(t *testing.T) {

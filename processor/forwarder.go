@@ -1,9 +1,9 @@
 package processor
 
 import (
-	"github.com/Financial-Times/message-queue-go-producer/producer"
-	"github.com/Financial-Times/go-logger"
 	"encoding/json"
+	"github.com/Financial-Times/go-logger"
+	"github.com/Financial-Times/message-queue-go-producer/producer"
 )
 
 const (
