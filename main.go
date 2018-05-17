@@ -20,9 +20,9 @@ import (
 	"github.com/jawher/mow.cli"
 	"github.com/rcrowley/go-metrics"
 
+	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/post-publication-combiner/processor"
 	"github.com/Financial-Times/post-publication-combiner/utils"
-	"github.com/Financial-Times/message-queue-go-producer/producer"
 )
 
 const serviceName = "post-publication-combiner"
@@ -212,7 +212,9 @@ func main() {
 			dataCombiner,
 			forcedMsgProducer,
 			*whitelistedContentTypes)
-		routeRequests(port, &requestHandler{requestProcessor: requestProcessor}, NewCombinerHealthcheck(requestProcessor.Forwarder.MsgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
+
+		// Since the health check for all producers and consumers just checks /topics for a response, we pick a producer and a consumer at random
+		routeRequests(port, &requestHandler{requestProcessor: requestProcessor}, NewCombinerHealthcheck(msgProducer, mc.Consumer, &client, *docStoreAPIBaseURL, *publicAnnotationsAPIBaseURL))
 	}
 
 	logger.Infof("PostPublicationCombiner is starting with args %v", os.Args)
