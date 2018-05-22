@@ -40,7 +40,7 @@ func TestProcessContentMsg_UnSupportedContent(t *testing.T) {
 		Body:    `{"payload":{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","title":"ididn’tdoanything","alternativeTitles":{"promotionalTitle":null},"type":null,"byline":"","brands":[{"id":"http://base-url/dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"}],"identifiers":[{"authority":"METHODE-authority","identifierValue":"41358e4b-6d05-4f44-9eaf-f6a542154110"}],"publishedDate":"2017-03-30T13:08:53.000Z","standfirst":null,"body":"<body><p>lorem ipsum<\/p>\n<\/body>","description":null,"mediaType":null,"pixelWidth":null,"pixelHeight":null,"internalBinaryUrl":null,"externalBinaryUrl":null,"members":null,"mainImage":null,"storyPackage":null,"contentPackage":null,"standout":{"editorsChoice":false,"exclusive":false,"scoop":false},"comments":{"enabled":true},"copyright":null,"webUrl":null,"publishReference":"tid_id_1","lastModified":"2017-03-30T13:09:06.480Z","canBeSyndicated":"verify","firstPublishedDate":"2017-03-30T13:08:53.000Z","accessLevel":"subscribed","canBeDistributed":"yes"},"contentUri":"http://unsupported-content-uri/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
 	}
 
-	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
+	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
 	p := &MsgProcessor{config: config}
 
@@ -61,7 +61,7 @@ func TestProcessContentMsg_SupportedContent_EmptyUUID(t *testing.T) {
 		Body:    `{"payload":{"title":"ididn’tdoanything","alternativeTitles":{"promotionalTitle":null},"type":null,"byline":"","brands":[{"id":"http://base-url/dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"}],"identifiers":[{"authority":"METHODE-authority","identifierValue":"41358e4b-6d05-4f44-9eaf-f6a542154110"}],"publishedDate":"2017-03-30T13:08:53.000Z","standfirst":null,"body":"<body><p>lorem ipsum<\/p>\n<\/body>","description":null,"mediaType":null,"pixelWidth":null,"pixelHeight":null,"internalBinaryUrl":null,"externalBinaryUrl":null,"members":null,"mainImage":null,"storyPackage":null,"contentPackage":null,"standout":{"editorsChoice":false,"exclusive":false,"scoop":false},"comments":{"enabled":true},"copyright":null,"webUrl":null,"publishReference":"tid_id_1","lastModified":"2017-03-30T13:09:06.480Z","canBeSyndicated":"verify","firstPublishedDate":"2017-03-30T13:08:53.000Z","accessLevel":"subscribed","canBeDistributed":"yes"},"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
 	}
 
-	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
+	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
 	p := &MsgProcessor{config: config}
 
@@ -82,7 +82,7 @@ func TestProcessContentMsg_Combiner_Errors(t *testing.T) {
 		Body:    `{"payload":{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","title":"ididn’tdoanything","alternativeTitles":{"promotionalTitle":null},"type":null,"byline":"","brands":[{"id":"http://base-url/dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"}],"identifiers":[{"authority":"METHODE-authority","identifierValue":"41358e4b-6d05-4f44-9eaf-f6a542154110"}],"publishedDate":"2017-03-30T13:08:53.000Z","standfirst":null,"body":"<body><p>lorem ipsum<\/p>\n<\/body>","description":null,"mediaType":null,"pixelWidth":null,"pixelHeight":null,"internalBinaryUrl":null,"externalBinaryUrl":null,"members":null,"mainImage":null,"storyPackage":null,"contentPackage":null,"standout":{"editorsChoice":false,"exclusive":false,"scoop":false},"comments":{"enabled":true},"copyright":null,"webUrl":null,"publishReference":"tid_id_1","lastModified":"2017-03-30T13:09:06.480Z","canBeSyndicated":"verify","firstPublishedDate":"2017-03-30T13:08:53.000Z","accessLevel":"subscribed","canBeDistributed":"yes"},"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
 	}
 
-	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
+	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
 	dummyDataCombiner := DummyDataCombiner{err: errors.New("some error")}
 	p := &MsgProcessor{config: config, DataCombiner: dummyDataCombiner}
@@ -105,7 +105,7 @@ func TestProcessContentMsg_Forwarder_Errors(t *testing.T) {
 		Body:    `{"payload":{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","title":"ididn’tdoanything","alternativeTitles":{"promotionalTitle":null},"type":"Article","byline":"","brands":[{"id":"http://base-url/dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"}],"identifiers":[{"authority":"METHODE-authority","identifierValue":"41358e4b-6d05-4f44-9eaf-f6a542154110"}],"publishedDate":"2017-03-30T13:08:53.000Z","standfirst":null,"body":"<body><p>lorem ipsum<\/p>\n<\/body>","description":null,"mediaType":null,"pixelWidth":null,"pixelHeight":null,"internalBinaryUrl":null,"externalBinaryUrl":null,"members":null,"mainImage":null,"storyPackage":null,"contentPackage":null,"standout":{"editorsChoice":false,"exclusive":false,"scoop":false},"comments":{"enabled":true},"copyright":null,"webUrl":null,"publishReference":"tid_id_1","lastModified":"2017-03-30T13:09:06.480Z","canBeSyndicated":"verify","firstPublishedDate":"2017-03-30T13:08:53.000Z","accessLevel":"subscribed","canBeDistributed":"yes"},"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
 	}
 
-	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
+	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"}
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
 	dummyDataCombiner := DummyDataCombiner{
@@ -138,7 +138,7 @@ func TestProcessContentMsg_Successfully_Forwarded(t *testing.T) {
 		Body:    `{"payload":{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","title":"simple title","type":"Article"},"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
 	}
 
-	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
+	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"}
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
 	dummyDataCombiner := DummyDataCombiner{
@@ -196,7 +196,7 @@ func TestProcessContentMsg_DeleteEvent_Successfully_Forwarded(t *testing.T) {
 	}
 	for _, test := range testCases {
 		t.Log(test.testName)
-		allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"}
+		allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"}
 		allowedContentTypes := []string{"Article", "Video"}
 		config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
 		dummyDataCombiner := DummyDataCombiner{data: CombinedModel{

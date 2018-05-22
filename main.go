@@ -131,7 +131,7 @@ func main() {
 	})
 	whitelistedContentUris := app.Strings(cli.StringsOpt{
 		Name:   "whitelistedContentURIs",
-		Value:  []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper"},
+		Value:  []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"},
 		Desc:   "Space separated list with content URI substrings - to identify accepted content types.",
 		EnvVar: "WHITELISTED_CONTENT_URIS",
 	})
