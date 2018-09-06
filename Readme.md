@@ -20,11 +20,11 @@ This service depends on the following services:
 
 In order to install, execute the following steps:
 
-        go get -u github.com/kardianos/govendor
         go get -u github.com/Financial-Times/post-publication-combiner
         cd $GOPATH/src/github.com/Financial-Times/post-publication-combiner
-        govendor sync
-        go build .
+        dep ensure -vendor-only
+        go test ./...
+        go install
 
 ## Running locally
 
