@@ -31,7 +31,7 @@ func TestCheckIfDocumentStoreIsReachable_Errors(t *testing.T) {
 	}
 
 	resp, err := h.checkIfDocumentStoreIsReachable()
-	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", expError, err))
+	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with received one %v", expError, err))
 	assert.Empty(t, resp)
 }
 
@@ -61,7 +61,7 @@ func TestCheckIfPublicAnnotationsApiIsReachable_Errors(t *testing.T) {
 	}
 
 	resp, err := h.checkIfPublicAnnotationsAPIIsReachable()
-	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with recieved one %v", expError, err))
+	assert.Contains(t, err.Error(), expError.Error(), fmt.Sprintf("Expected error %v not equal with received one %v", expError, err))
 	assert.Empty(t, resp)
 }
 
@@ -239,7 +239,7 @@ func (p *mockProducer) ConnectivityCheck() (string, error) {
 		return "", nil
 	}
 
-	return "", errors.New("Error connecting to the queue")
+	return "", errors.New("error connecting to the queue")
 }
 
 type mockConsumer struct {
@@ -257,5 +257,5 @@ func (p *mockConsumer) ConnectivityCheck() (string, error) {
 		return "", nil
 	}
 
-	return "", errors.New("Error connecting to the queue")
+	return "", errors.New("error connecting to the queue")
 }

@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	NotFoundError           = errors.New("Content not found") // used when the content can not be found by the platform
-	InvalidContentTypeError = errors.New("Invalid content type")
+	NotFoundError           = errors.New("content not found") // used when the content can not be found by the platform
+	InvalidContentTypeError = errors.New("invalid content type")
 )
 
 type MsgProcessor struct {

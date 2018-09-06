@@ -27,7 +27,7 @@ func TestGetCombinedModelForContent(t *testing.T) {
 			[]Annotation{},
 			nil,
 			CombinedModel{},
-			errors.New("Content has no UUID provided. Can't deduce annotations for it."),
+			errors.New("content has no UUID provided. Can't deduce annotations for it."),
 		},
 		{
 			ContentModel{
@@ -43,9 +43,9 @@ func TestGetCombinedModelForContent(t *testing.T) {
 				"uuid": "some uuid",
 			},
 			[]Annotation{},
-			errors.New("Could not unmarshall annotations for content with uuid"),
+			errors.New("could not unmarshall annotations for content with uuid"),
 			CombinedModel{},
-			errors.New("Could not unmarshall annotations for content with uuid"),
+			errors.New("could not unmarshall annotations for content with uuid"),
 		},
 		{
 			ContentModel{
@@ -162,7 +162,7 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 			[]Annotation{},
 			nil,
 			CombinedModel{},
-			errors.New("Annotations have no UUID referenced. Can't deduce content for it."),
+			errors.New("annotations have no UUID referenced. Can't deduce content for it."),
 		},
 		{
 			Annotations{UUID: "some_uuid"},
@@ -345,7 +345,7 @@ func TestGetAnnotations(t *testing.T) {
 				body:       "text that can't be unmarshalled",
 			},
 			[]Annotation(nil),
-			errors.New("Could not unmarshall annotations for content with uuid=some_uuid"),
+			errors.New("could not unmarshall annotations for content with uuid=some_uuid"),
 		},
 		{
 			"some_uuid",
@@ -444,7 +444,7 @@ func TestGetContent(t *testing.T) {
 				body:       "text that can't be unmarshalled",
 			},
 			nil,
-			errors.New("Could not unmarshall content with uuid=some_uuid"),
+			errors.New("could not unmarshall content with uuid=some_uuid"),
 		},
 		{
 			"622de808-3a7a-49bd-a7fb-2a33f64695be",
