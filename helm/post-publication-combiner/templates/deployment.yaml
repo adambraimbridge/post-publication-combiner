@@ -47,9 +47,7 @@ spec:
           value: "{{ .Values.env.KAFKA_PROXY_CONTENT_CONSUMER_GROUP }}"
         - name: KAFKA_PROXY_METADATA_CONSUMER_GROUP 
           value: "{{ .Values.env.KAFKA_PROXY_METADATA_CONSUMER_GROUP }}"
-        - name: LOG_METRICS 
-          value: "{{ .Values.env.LOG_METRICS }}"
-        - name: DOCUMENT_STORE_BASE_URL 
+        - name: DOCUMENT_STORE_BASE_URL
           value: "{{ .Values.env.DOCUMENT_STORE_BASE_URL }}"
         - name: DOCUMENT_STORE_API_ENDPOINT 
           value: "{{ .Values.env.DOCUMENT_STORE_API_ENDPOINT }}"
@@ -57,14 +55,7 @@ spec:
           value: "{{ .Values.env.PUBLIC_ANNOTATIONS_API_BASE_URL }}"
         - name: PUBLIC_ANNOTATIONS_API_ENDPOINT 
           value: "{{ .Values.env.PUBLIC_ANNOTATIONS_API_ENDPOINT }}"
-        - name: GRAPHITE_PREFIX 
-          value: "coco.services.k8s.{{ .Values.service.name }}"
-        - name: GRAPHITE_ADDRESS 
-          valueFrom:
-            configMapKeyRef:
-              name: global-config
-              key: graphite.address
-        - name: KAFKA_PROXY_ADDR 
+        - name: KAFKA_PROXY_ADDR
           valueFrom: 
             configMapKeyRef: 
               name: global-config
