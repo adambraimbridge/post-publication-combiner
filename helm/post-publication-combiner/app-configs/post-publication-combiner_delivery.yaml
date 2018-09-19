@@ -10,7 +10,6 @@ env:
   KAFKA_FORCED_COMBINED_TOPIC_NAME: ForcedCombinedPostPublicationEvents
   KAFKA_PROXY_CONTENT_CONSUMER_GROUP: k8s-post-publication-combiner-content-consumer
   KAFKA_PROXY_METADATA_CONSUMER_GROUP: k8s-post-publication-combiner-metadata-consumer
-  LOG_METRICS: false
   DOCUMENT_STORE_BASE_URL: http://document-store-api:8080
   DOCUMENT_STORE_API_ENDPOINT: /content/{uuid}
   PUBLIC_ANNOTATIONS_API_BASE_URL: http://public-annotations-api:8080

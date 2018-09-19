@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
@@ -82,23 +81,6 @@ func main() {
 		EnvVar: "KAFKA_PROXY_HOST_HEADER",
 	})
 
-	graphiteTCPAddress := app.String(cli.StringOpt{
-		Name:   "graphiteTCPAddress",
-		Desc:   "Graphite TCP address, e.g. graphite.ft.com:2003. Leave as default if you do NOT want to output to graphite (e.g. if running locally",
-		EnvVar: "GRAPHITE_ADDRESS",
-	})
-	graphitePrefix := app.String(cli.StringOpt{
-		Name:   "graphitePrefix",
-		Desc:   "Prefix to use. Should start with content, include the environment, and the host name. e.g. coco.pre-prod.service-name.1 or content.test.people.rw.service-name.ftaps58938-law1a-eu-t",
-		EnvVar: "GRAPHITE_PREFIX",
-	})
-	logMetrics := app.Bool(cli.BoolOpt{
-		Name:   "logMetrics",
-		Value:  false,
-		Desc:   "Whether to log metrics. Set to true if running locally and you want metrics output",
-		EnvVar: "LOG_METRICS",
-	})
-
 	docStoreAPIBaseURL := app.String(cli.StringOpt{
 		Name:   "docStoreApiBaseURL",
 		Value:  "http://localhost:8080/__document-store-api",
@@ -157,8 +139,6 @@ func main() {
 				ExpectContinueTimeout: 1 * time.Second,
 			},
 		}
-
-		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 
 		// create channel for holding the post publication content and metadata messages
 		messagesCh := make(chan *processor.KafkaQMessage, 100)
