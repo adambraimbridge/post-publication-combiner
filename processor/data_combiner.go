@@ -45,7 +45,7 @@ func NewDataCombiner(docStoreApiUrl utils.ApiURL, annApiUrl utils.ApiURL, c util
 func (dc DataCombiner) GetCombinedModelForContent(content ContentModel) (CombinedModel, error) {
 
 	if content.getUUID() == "" {
-		return CombinedModel{}, errors.New("Content has no UUID provided. Can't deduce annotations for it.")
+		return CombinedModel{}, errors.New("content has no UUID provided. Can't deduce annotations for it.")
 	}
 
 	ann, err := dc.MetadataRetriever.getAnnotations(content.getUUID())
@@ -64,7 +64,7 @@ func (dc DataCombiner) GetCombinedModelForContent(content ContentModel) (Combine
 func (dc DataCombiner) GetCombinedModelForAnnotations(metadata Annotations) (CombinedModel, error) {
 
 	if metadata.UUID == "" {
-		return CombinedModel{}, errors.New("Annotations have no UUID referenced. Can't deduce content for it.")
+		return CombinedModel{}, errors.New("annotations have no UUID referenced. Can't deduce content for it.")
 	}
 
 	return dc.GetCombinedModel(metadata.UUID)
@@ -116,7 +116,7 @@ func (dr dataRetriever) getAnnotations(uuid string) ([]Annotation, error) {
 
 	var things []Thing
 	if err := json.Unmarshal(b, &things); err != nil {
-		return ann, fmt.Errorf("Could not unmarshall annotations for content with uuid=%v, error=%v", uuid, err.Error())
+		return ann, fmt.Errorf("could not unmarshall annotations for content with uuid=%v, error=%v", uuid, err.Error())
 	}
 	for _, t := range things {
 		ann = append(ann, Annotation{t})
@@ -139,7 +139,7 @@ func (dr dataRetriever) getContent(uuid string) (ContentModel, error) {
 	}
 
 	if err := json.Unmarshal(b, &c); err != nil {
-		return c, fmt.Errorf("Could not unmarshall content with uuid=%v, error=%v", uuid, err.Error())
+		return c, fmt.Errorf("could not unmarshall content with uuid=%v, error=%v", uuid, err.Error())
 	}
 
 	return c, nil

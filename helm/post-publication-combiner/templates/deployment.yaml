@@ -55,6 +55,12 @@ spec:
           value: "{{ .Values.env.PUBLIC_ANNOTATIONS_API_BASE_URL }}"
         - name: PUBLIC_ANNOTATIONS_API_ENDPOINT 
           value: "{{ .Values.env.PUBLIC_ANNOTATIONS_API_ENDPOINT }}"
+        - name: WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS
+          value: "{{ .Values.env.WHITELISTED_METADATA_ORIGIN_SYSTEM_HEADERS }}"
+        - name: WHITELISTED_CONTENT_URIS
+          value: "{{ .Values.env.WHITELISTED_CONTENT_URIS }}"
+        - name: WHITELISTED_CONTENT_TYPES
+          value: "{{ .Values.env.WHITELISTED_CONTENT_TYPES }}"
         - name: KAFKA_PROXY_ADDR
           valueFrom: 
             configMapKeyRef: 

@@ -144,7 +144,7 @@ func TestForceMessageNotFoundError(t *testing.T) {
 
 	assert.Equal(t, "error", hook.LastEntry().Level.String())
 	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("Could not find content with uuid %s.", uuid))
-	assert.Equal(t, hook.LastEntry().Data["error"].(error).Error(), "Content not found")
+	assert.Equal(t, hook.LastEntry().Data["error"].(error).Error(), "content not found")
 	assert.Equal(t, 2, len(hook.Entries))
 }
 
