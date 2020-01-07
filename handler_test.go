@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/Financial-Times/post-publication-combiner/processor"
+	"github.com/Financial-Times/post-publication-combiner/v2/processor"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"net/http"
