@@ -1,7 +1,8 @@
 package processor
 
 import (
-	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	consumer "github.com/Financial-Times/message-queue-gonsumer"
+	logger "github.com/Financial-Times/go-logger/v2"
 	"net/http"
 )
 
@@ -21,9 +22,11 @@ type KafkaQMessage struct {
 }
 
 func NewKafkaQConsumer(cConf consumer.QueueConfig, ch chan<- *KafkaQMessage, client *http.Client) *KafkaQConsumer {
+	logConf := logger.KeyNamesConfig{KeyTime: "@time"}
+	l := logger.NewUPPLogger("post-publication-combiner", "INFO", logConf)
 
 	kc := KafkaQConsumer{msgType: cConf.Topic, dest: ch}
-	kc.Consumer = consumer.NewConsumer(cConf, kc.ProcessMsg, client)
+	kc.Consumer = consumer.NewConsumer(cConf, kc.ProcessMsg, client, l)
 	return &kc
 }
 
