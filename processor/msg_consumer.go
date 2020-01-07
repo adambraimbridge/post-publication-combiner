@@ -1,9 +1,10 @@
 package processor
 
 import (
-	consumer "github.com/Financial-Times/message-queue-gonsumer"
-	logger "github.com/Financial-Times/go-logger/v2"
 	"net/http"
+
+	logger "github.com/Financial-Times/go-logger/v2"
+	consumer "github.com/Financial-Times/message-queue-gonsumer"
 )
 
 type QConsumer interface {
