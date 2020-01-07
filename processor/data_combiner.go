@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Financial-Times/post-publication-combiner/utils"
+	"github.com/Financial-Times/post-publication-combiner/v2/utils"
 	"net/http"
 )
 

@@ -4,10 +4,10 @@ import (
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
-	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	consumer "github.com/Financial-Times/message-queue-gonsumer"
 	"github.com/Financial-Times/service-status-go/gtg"
 
-	"github.com/Financial-Times/post-publication-combiner/utils"
+	"github.com/Financial-Times/post-publication-combiner/v2/utils"
 )
 
 const (
