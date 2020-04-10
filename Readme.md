@@ -1,6 +1,8 @@
 # upp-post-publication-combiner
 
-[![Circle CI](https://circleci.com/gh/Financial-Times/post-publication-combiner/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/post-publication-combiner/tree/master)[![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/post-publication-combiner)](https://goreportcard.com/report/github.com/Financial-Times/post-publication-combiner) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/post-publication-combiner/badge.svg)](https://coveralls.io/github/Financial-Times/post-publication-combiner)
+[![CircleCI](https://circleci.com/gh/Financial-Times/post-publication-combiner.svg?style=svg)](https://circleci.com/gh/Financial-Times/post-publication-combiner)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/post-publication-combiner)](https://goreportcard.com/report/github.com/Financial-Times/post-publication-combiner)
+[![Coverage Status](https://coveralls.io/repos/github/Financial-Times/post-publication-combiner/badge.svg)](https://coveralls.io/github/Financial-Times/post-publication-combiner)
 
 ## Introduction
 This service builds combined messages (content + annotations) based on events received from PostConceptAnnotations or PostPublicationEvents.  
@@ -18,13 +20,11 @@ This service depends on the following services:
 
 ## Installation
 
-In order to install, execute the following steps:
+In order to build, execute the following steps:
 
         go get -u github.com/Financial-Times/post-publication-combiner
         cd $GOPATH/src/github.com/Financial-Times/post-publication-combiner
-        dep ensure -vendor-only
-        go test ./...
-        go install
+        go build .
 
 ## Running locally
 
