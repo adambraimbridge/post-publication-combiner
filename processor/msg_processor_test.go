@@ -10,7 +10,6 @@ import (
 	testLogger "github.com/Financial-Times/go-logger/test"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -539,7 +538,7 @@ func (c DummyDataCombiner) GetCombinedModelForContent(content ContentModel) (Com
 	return c.data, c.err
 }
 
-func (c DummyDataCombiner) GetCombinedModelForAnnotations(metadata Annotations) (CombinedModel, error) {
+func (c DummyDataCombiner) GetCombinedModelForAnnotations(metadata AnnotationsMessage) (CombinedModel, error) {
 	return c.data, c.err
 }
 

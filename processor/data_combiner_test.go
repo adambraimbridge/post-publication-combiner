@@ -147,59 +147,41 @@ func TestGetCombinedModelForContent(t *testing.T) {
 func TestGetCombinedModelForAnnotations(t *testing.T) {
 
 	tests := []struct {
-		metadata            Annotations
+		metadata            AnnotationsMessage
 		retrievedContent    ContentModel
-		retreivedContentErr error
+		retrievedContentErr error
 		retrievedAnn        []Annotation
-		retreivedAnnErr     error
+		retrievedAnnErr     error
 		expModel            CombinedModel
 		expError            error
 	}{
 		{
-			Annotations{},
-			ContentModel{},
-			nil,
-			[]Annotation{},
-			nil,
-			CombinedModel{},
-			errors.New("annotations have no UUID referenced. Can't deduce content for it."),
+			expError: errors.New("annotations have no UUID referenced"),
 		},
 		{
-			Annotations{UUID: "some_uuid"},
-			ContentModel{},
-			errors.New("some content error"),
-			[]Annotation{},
-			nil,
-			CombinedModel{},
-			errors.New("some content error"),
+			metadata:            AnnotationsMessage{Annotations: &AnnotationsModel{UUID: "some_uuid"}},
+			retrievedContentErr: errors.New("some content error"),
+			expError:            errors.New("some content error"),
 		},
 		{
-			Annotations{UUID: "some_uuid"},
-			ContentModel{},
-			errors.New("some content error"),
-			[]Annotation{},
-			errors.New("some metadata error"),
-			CombinedModel{},
-			errors.New("some content error"),
+			metadata:            AnnotationsMessage{Annotations: &AnnotationsModel{UUID: "some_uuid"}},
+			retrievedContentErr: errors.New("some content error"),
+			retrievedAnnErr:     errors.New("some metadata error"),
+			expError:            errors.New("some content error"),
 		},
 		{
-			Annotations{UUID: "some_uuid"},
-			ContentModel{},
-			nil,
-			[]Annotation{},
-			errors.New("some metadata error"),
-			CombinedModel{},
-			errors.New("some metadata error"),
+			metadata:        AnnotationsMessage{Annotations: &AnnotationsModel{UUID: "some_uuid"}},
+			retrievedAnnErr: errors.New("some metadata error"),
+			expError:        errors.New("some metadata error"),
 		},
 		{
-			Annotations{UUID: "some_uuid"},
-			ContentModel{
+			metadata: AnnotationsMessage{Annotations: &AnnotationsModel{UUID: "some_uuid"}},
+			retrievedContent: ContentModel{
 				"uuid":  "some_uuid",
 				"title": "title",
 				"body":  "body",
 			},
-			nil,
-			[]Annotation{
+			retrievedAnn: []Annotation{
 				{Thing{
 					ID:        "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
 					PrefLabel: "Barclays",
@@ -211,8 +193,7 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 				},
 				},
 			},
-			nil,
-			CombinedModel{
+			expModel: CombinedModel{
 				UUID: "some_uuid",
 				Content: ContentModel{
 					"uuid":  "some_uuid",
@@ -232,11 +213,10 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 					},
 				},
 			},
-			nil,
 		},
 		{
-			Annotations{UUID: "some_uuid"},
-			ContentModel{
+			metadata: AnnotationsMessage{Annotations: &AnnotationsModel{UUID: "some_uuid"}},
+			retrievedContent: ContentModel{
 				"uuid":  "some_uuid",
 				"title": "title",
 				"body":  "body",
@@ -248,8 +228,7 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 					},
 				},
 			},
-			nil,
-			[]Annotation{
+			retrievedAnn: []Annotation{
 				{Thing{
 					ID:        "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
 					PrefLabel: "Barclays",
@@ -261,8 +240,7 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 				},
 				},
 			},
-			nil,
-			CombinedModel{
+			expModel: CombinedModel{
 				UUID: "some_uuid",
 				Content: ContentModel{
 					"uuid":  "some_uuid",
@@ -289,14 +267,13 @@ func TestGetCombinedModelForAnnotations(t *testing.T) {
 					},
 				},
 			},
-			nil,
 		},
 	}
 
 	for _, testCase := range tests {
 		combiner := DataCombiner{
-			ContentRetriever:  DummyContentRetriever{testCase.retrievedContent, testCase.retreivedContentErr},
-			MetadataRetriever: DummyMetadataRetriever{testCase.retrievedAnn, testCase.retreivedAnnErr},
+			ContentRetriever:  DummyContentRetriever{testCase.retrievedContent, testCase.retrievedContentErr},
+			MetadataRetriever: DummyMetadataRetriever{testCase.retrievedAnn, testCase.retrievedAnnErr},
 		}
 
 		m, err := combiner.GetCombinedModelForAnnotations(testCase.metadata)

@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Financial-Times/post-publication-combiner/utils"
 	"net/http"
+
+	"github.com/Financial-Times/post-publication-combiner/utils"
 )
 
 type DataCombinerI interface {
 	GetCombinedModelForContent(content ContentModel) (CombinedModel, error)
-	GetCombinedModelForAnnotations(metadata Annotations) (CombinedModel, error)
+	GetCombinedModelForAnnotations(metadata AnnotationsMessage) (CombinedModel, error)
 	GetCombinedModel(uuid string) (CombinedModel, error)
 }
 
@@ -61,24 +62,17 @@ func (dc DataCombiner) GetCombinedModelForContent(content ContentModel) (Combine
 	}, nil
 }
 
-func (dc DataCombiner) GetCombinedModelForAnnotations(metadata Annotations) (CombinedModel, error) {
+func (dc DataCombiner) GetCombinedModelForAnnotations(metadata AnnotationsMessage) (CombinedModel, error) {
 
-	if metadata.UUID == "" {
-		return CombinedModel{}, errors.New("annotations have no UUID referenced. Can't deduce content for it.")
+	uuid := metadata.getContentUUID()
+	if uuid == "" {
+		return CombinedModel{}, errors.New("annotations have no UUID referenced")
 	}
 
-	return dc.GetCombinedModel(metadata.UUID)
+	return dc.GetCombinedModel(uuid)
 }
 
 func (dc DataCombiner) GetCombinedModel(uuid string) (CombinedModel, error) {
-	type annResponse struct {
-		ann []Annotation
-		err error
-	}
-	type cResponse struct {
-		c   map[string]interface{}
-		err error
-	}
 
 	// Get content
 	content, err := dc.ContentRetriever.getContent(uuid)

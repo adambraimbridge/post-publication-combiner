@@ -1,6 +1,6 @@
 package processor
 
-type MessageContent struct {
+type ContentMessage struct {
 	ContentURI   string       `json:"contentUri"`
 	ContentModel ContentModel `json:"payload"`
 	LastModified string       `json:"lastModified"`
@@ -18,7 +18,13 @@ type CombinedModel struct {
 	MarkedDeleted string `json:"markedDeleted"`
 }
 
-type Annotations struct {
+type AnnotationsMessage struct {
+	ContentURI   string            `json:"contentUri"`
+	Annotations  *AnnotationsModel `json:"payload"`
+	LastModified string            `json:"lastModified"`
+}
+
+type AnnotationsModel struct {
 	Annotations []Annotation `json:"annotations"`
 	UUID        string       `json:"uuid"`
 }
@@ -65,4 +71,11 @@ func (cm ContentModel) getIdentifiers() []Identifier {
 type Identifier struct {
 	Authority       string `json:"authority"`
 	IdentifierValue string `json:"identifierValue"`
+}
+
+func (am AnnotationsMessage) getContentUUID() string {
+	if am.Annotations == nil {
+		return ""
+	}
+	return am.Annotations.UUID
 }
