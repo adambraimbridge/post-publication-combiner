@@ -21,7 +21,7 @@ require (
 	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20161128210544-1f30fe9094a5
-	github.com/satori/go.uuid v1.2.0
+	github.com/satori/go.uuid v1.2.1-0.20181016170032-d91630c85102
 	github.com/sirupsen/logrus v1.0.4-0.20170822132746-89742aefa4b2 // indirect
 	github.com/stretchr/testify v1.2.2
 	golang.org/x/crypto v0.0.0-20180904163835-0709b304e793 // indirect
