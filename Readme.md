@@ -5,15 +5,29 @@
 [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/post-publication-combiner/badge.svg)](https://coveralls.io/github/Financial-Times/post-publication-combiner)
 
 ## Introduction
-This service builds combined messages (content + annotations) based on events received from PostConceptAnnotations or PostPublicationEvents.  
-The combined message is then sent to the CombinedPostPublicationEvents kafka queue.
-
-This is a combination point for synchronizing the content and the metadata publish flows.
+This service builds combined messages (content + annotations) based on events received from `PostConceptAnnotations` or `PostPublicationEvents`.
+This is a combination point for synchronizing the content and metadata publish flows.
 Note: one publish event can result in two messages in the CombinedPostPublicationEvents topics (one for the content publish, and one for the metadata publish).
 
-The service has a force endpoint, that allows putting a combined message in the queue, with the actual data from our content and metadata stores.
+For `PostPublicationEvents` message the service extracts the published content from the messages, and requests the metadata from `public-annotations-api`. It is possible for `public-annotations-api`  to return `404 Not Found` for the provided content uuid.
+For `PostConceptAnnotations` message the service extracts only the content uuid from the message, and requests the content from `document-store-api` and metadata from `public-annotations-api`. It is possible for `document-store-api` to return `404 Not Found` fot the provided content uuid.
+The service then constructs a `CombinedPostPublicationEvents` message with the received data. It is possible for either `content` or `metadata` fields in the constructed message to be empty, but not both.
 
-This service depends on the following services:
+#### CombinedPostPublicationEvents format
+
+```json5
+{
+  "uuid": "some_uuid", // content uuid
+  "contentUri": "",
+  "lastModified": "",
+  "markedDeleted": "",
+  "content": {}, // data returned from document-store-api
+  "metadata": [] // data returned from public-annotations-api
+}
+```
+
+### Dependencies 
+
 - kafka/kafka-proxy
 - document-store-api (/content endpoint)
 - public-annotations-api (/content/{uuid}/annotations endpoint)
@@ -22,7 +36,7 @@ This service depends on the following services:
 
 In order to build, execute the following steps:
 
-        go get -u github.com/Financial-Times/post-publication-combiner
+        go get github.com/Financial-Times/post-publication-combiner
         cd $GOPATH/src/github.com/Financial-Times/post-publication-combiner
         go build .
 
@@ -40,8 +54,8 @@ In order to build, execute the following steps:
 Please check --help for more details.
 
 Test:
-    You can verify the service's behavior by checking the consumed and the generated kafka messages.
-    You can also use the [force endpoint](#force)
+    You can verify the service's behavior by checking the consumed, and the generated kafka messages.
+    You can also use the force endpoint.
 
 ## Build and deployment
 
@@ -49,6 +63,10 @@ Test:
 * CI provided by CircleCI: [post-publication-combiner](https://circleci.com/gh/Financial-Times/post-publication-combiner)
 
 ## Service/Utility endpoints
+
+### Force endpoint
+
+`POST` - `/{content_uuid}` - Creates and forwards a CombinedPostPublicationEvent to the queue for the provided UUID.
 
 Refer to [api.yml](_ft/api.yml) for api related documentation.
 
@@ -68,4 +86,4 @@ Checks if:
 ### Logging
 
 * The application uses the FT [go-logger](https://github.com/Financial-Times/go-logger) library, based on [logrus](https://github.com/sirupsen/logrus).
-* NOTE: `/__build-info` and `/__gtg` endpoints are not logged as they are called frequently.
+* NOTE: There is no logging for `/__build-info` and `/__gtg` endpoints as they are called frequently.
