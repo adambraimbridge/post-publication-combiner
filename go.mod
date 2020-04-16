@@ -1,4 +1,4 @@
-module github.com/Financial-Times/post-publication-combiner
+module github.com/Financial-Times/post-publication-combiner/v2
 
 go 1.14
 
