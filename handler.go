@@ -1,11 +1,12 @@
 package main
 
 import (
-	logger "github.com/Financial-Times/go-logger"
-	"github.com/Financial-Times/post-publication-combiner/processor"
-	"github.com/gorilla/mux"
-	"github.com/satori/go.uuid"
 	"net/http"
+
+	"github.com/Financial-Times/go-logger"
+	"github.com/Financial-Times/post-publication-combiner/v2/processor"
+	"github.com/gorilla/mux"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (

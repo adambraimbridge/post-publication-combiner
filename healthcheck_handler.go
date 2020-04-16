@@ -5,9 +5,8 @@ import (
 	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/Financial-Times/post-publication-combiner/v2/utils"
 	"github.com/Financial-Times/service-status-go/gtg"
-
-	"github.com/Financial-Times/post-publication-combiner/utils"
 )
 
 const (
