@@ -1,0 +1,19 @@
+{
+  "payload": {
+    "uuid": "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+    "annotations": [
+      {
+        "ID": "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995",
+        "PrefLabel": "Barclays",
+        "Types": [
+          "http://base-url/core/Thing",
+          "http://base-url/concept/Concept"
+        ],
+        "Predicate": "http://base-url/about",
+        "ApiUrl": "http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"
+      }
+    ]
+  },
+  "contentUri": "http://pac.annotations-rw-neo4j.svc.ft.com/annotations/0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+  "lastModified": "2017-03-30T13:09:06.48Z"
+}

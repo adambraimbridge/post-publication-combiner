@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 
 	testLogger "github.com/Financial-Times/go-logger/test"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,10 +36,8 @@ func TestProcessContentMsg_Unmarshall_Error(t *testing.T) {
 }
 
 func TestProcessContentMsg_UnSupportedContent(t *testing.T) {
-	m := consumer.Message{
-		Headers: map[string]string{"X-Request-Id": "some-tid1"},
-		Body:    `{"payload":{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","title":"ididn’tdoanything","alternativeTitles":{"promotionalTitle":null},"type":null,"byline":"","brands":[{"id":"http://base-url/dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"}],"identifiers":[{"authority":"METHODE-authority","identifierValue":"41358e4b-6d05-4f44-9eaf-f6a542154110"}],"publishedDate":"2017-03-30T13:08:53.000Z","standfirst":null,"body":"<body><p>lorem ipsum<\/p>\n<\/body>","description":null,"mediaType":null,"pixelWidth":null,"pixelHeight":null,"internalBinaryUrl":null,"externalBinaryUrl":null,"members":null,"mainImage":null,"storyPackage":null,"contentPackage":null,"standout":{"editorsChoice":false,"exclusive":false,"scoop":false},"comments":{"enabled":true},"copyright":null,"webUrl":null,"publishReference":"tid_id_1","lastModified":"2017-03-30T13:09:06.480Z","canBeSyndicated":"verify","firstPublishedDate":"2017-03-30T13:08:53.000Z","accessLevel":"subscribed","canBeDistributed":"yes"},"contentUri":"http://unsupported-content-uri/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
-	}
+	m, err := createMessage(map[string]string{"X-Request-Id": "some-tid1"}, "./testData/content-with-unsupported-uri.json")
+	assert.NoError(t, err)
 
 	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
@@ -56,10 +55,8 @@ func TestProcessContentMsg_UnSupportedContent(t *testing.T) {
 }
 
 func TestProcessContentMsg_SupportedContent_EmptyUUID(t *testing.T) {
-	m := consumer.Message{
-		Headers: map[string]string{"X-Request-Id": "some-tid1"},
-		Body:    `{"payload":{"title":"ididn’tdoanything","alternativeTitles":{"promotionalTitle":null},"type":null,"byline":"","brands":[{"id":"http://base-url/dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"}],"identifiers":[{"authority":"METHODE-authority","identifierValue":"41358e4b-6d05-4f44-9eaf-f6a542154110"}],"publishedDate":"2017-03-30T13:08:53.000Z","standfirst":null,"body":"<body><p>lorem ipsum<\/p>\n<\/body>","description":null,"mediaType":null,"pixelWidth":null,"pixelHeight":null,"internalBinaryUrl":null,"externalBinaryUrl":null,"members":null,"mainImage":null,"storyPackage":null,"contentPackage":null,"standout":{"editorsChoice":false,"exclusive":false,"scoop":false},"comments":{"enabled":true},"copyright":null,"webUrl":null,"publishReference":"tid_id_1","lastModified":"2017-03-30T13:09:06.480Z","canBeSyndicated":"verify","firstPublishedDate":"2017-03-30T13:08:53.000Z","accessLevel":"subscribed","canBeDistributed":"yes"},"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
-	}
+	m, err := createMessage(map[string]string{"X-Request-Id": "some-tid1"}, "./testData/content-no-uuid-wordpress-uri.json")
+	assert.NoError(t, err)
 
 	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
@@ -77,14 +74,20 @@ func TestProcessContentMsg_SupportedContent_EmptyUUID(t *testing.T) {
 }
 
 func TestProcessContentMsg_Combiner_Errors(t *testing.T) {
-	m := consumer.Message{
-		Headers: map[string]string{"X-Request-Id": "some-tid1"},
-		Body:    `{"payload":{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","title":"ididn’tdoanything","alternativeTitles":{"promotionalTitle":null},"type":null,"byline":"","brands":[{"id":"http://base-url/dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"}],"identifiers":[{"authority":"METHODE-authority","identifierValue":"41358e4b-6d05-4f44-9eaf-f6a542154110"}],"publishedDate":"2017-03-30T13:08:53.000Z","standfirst":null,"body":"<body><p>lorem ipsum<\/p>\n<\/body>","description":null,"mediaType":null,"pixelWidth":null,"pixelHeight":null,"internalBinaryUrl":null,"externalBinaryUrl":null,"members":null,"mainImage":null,"storyPackage":null,"contentPackage":null,"standout":{"editorsChoice":false,"exclusive":false,"scoop":false},"comments":{"enabled":true},"copyright":null,"webUrl":null,"publishReference":"tid_id_1","lastModified":"2017-03-30T13:09:06.480Z","canBeSyndicated":"verify","firstPublishedDate":"2017-03-30T13:08:53.000Z","accessLevel":"subscribed","canBeDistributed":"yes"},"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
-	}
+	m, err := createMessage(map[string]string{"X-Request-Id": "some-tid1"}, "./testData/content-null-type.json")
+	assert.NoError(t, err)
+
+	cm := &ContentMessage{}
+	err = json.Unmarshal([]byte(m.Body), cm)
+	assert.NoError(t, err)
 
 	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
-	dummyDataCombiner := DummyDataCombiner{err: errors.New("some error")}
+	dummyDataCombiner := DummyDataCombiner{
+		t:               t,
+		expectedContent: cm.ContentModel,
+		err:             errors.New("some error"),
+	}
 	p := &MsgProcessor{config: config, DataCombiner: dummyDataCombiner}
 
 	hook := testLogger.NewTestHook("dummyDataCombiner")
@@ -100,20 +103,22 @@ func TestProcessContentMsg_Combiner_Errors(t *testing.T) {
 }
 
 func TestProcessContentMsg_Forwarder_Errors(t *testing.T) {
-	m := consumer.Message{
-		Headers: map[string]string{"X-Request-Id": "some-tid1"},
-		Body:    `{"payload":{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","title":"ididn’tdoanything","alternativeTitles":{"promotionalTitle":null},"type":"Article","byline":"","brands":[{"id":"http://base-url/dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"}],"identifiers":[{"authority":"METHODE-authority","identifierValue":"41358e4b-6d05-4f44-9eaf-f6a542154110"}],"publishedDate":"2017-03-30T13:08:53.000Z","standfirst":null,"body":"<body><p>lorem ipsum<\/p>\n<\/body>","description":null,"mediaType":null,"pixelWidth":null,"pixelHeight":null,"internalBinaryUrl":null,"externalBinaryUrl":null,"members":null,"mainImage":null,"storyPackage":null,"contentPackage":null,"standout":{"editorsChoice":false,"exclusive":false,"scoop":false},"comments":{"enabled":true},"copyright":null,"webUrl":null,"publishReference":"tid_id_1","lastModified":"2017-03-30T13:09:06.480Z","canBeSyndicated":"verify","firstPublishedDate":"2017-03-30T13:08:53.000Z","accessLevel":"subscribed","canBeDistributed":"yes"},"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
-	}
+	m, err := createMessage(map[string]string{"X-Request-Id": "some-tid1"}, "./testData/content.json")
+	assert.NoError(t, err)
+
+	cm := &ContentMessage{}
+	err = json.Unmarshal([]byte(m.Body), cm)
+	assert.NoError(t, err)
 
 	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"}
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
 	dummyDataCombiner := DummyDataCombiner{
+		t:               t,
+		expectedContent: cm.ContentModel,
 		data: CombinedModel{
-			UUID: "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-			Content: ContentModel{
-				"type": "Article",
-			},
+			UUID:    "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+			Content: cm.ContentModel,
 		},
 	}
 	dummyMsgProducer := DummyMsgProducer{t: t, expError: errors.New("some dummyMsgProducer error")}
@@ -133,15 +138,19 @@ func TestProcessContentMsg_Forwarder_Errors(t *testing.T) {
 }
 
 func TestProcessContentMsg_Successfully_Forwarded(t *testing.T) {
-	m := consumer.Message{
-		Headers: map[string]string{"X-Request-Id": "some-tid1"},
-		Body:    `{"payload":{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","title":"simple title","type":"Article"},"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
-	}
+	m, err := createMessage(map[string]string{"X-Request-Id": "some-tid1"}, "./testData/content.json")
+	assert.NoError(t, err)
+
+	cm := &ContentMessage{}
+	err = json.Unmarshal([]byte(m.Body), cm)
+	assert.NoError(t, err)
 
 	allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"}
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
 	dummyDataCombiner := DummyDataCombiner{
+		t:               t,
+		expectedContent: cm.ContentModel,
 		data: CombinedModel{
 			UUID:          "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
 			MarkedDeleted: "false",
@@ -175,62 +184,61 @@ func TestProcessContentMsg_Successfully_Forwarded(t *testing.T) {
 }
 
 func TestProcessContentMsg_DeleteEvent_Successfully_Forwarded(t *testing.T) {
-	testCases := []struct {
-		m        consumer.Message
-		testName string
+	testCases := map[string]struct {
+		Headers map[string]string
+		Fixture string
 	}{
-		{
-			m: consumer.Message{
-				Headers: map[string]string{"X-Request-Id": "some-tid1"},
-				Body:    `{"payload":null,"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
-			},
-			testName: "Delete with null payload",
+		"Delete with null payload": {
+			Headers: map[string]string{"X-Request-Id": "some-tid1"},
+			Fixture: "./testData/content-null-payload.json",
 		},
-		{
-			m: consumer.Message{
-				Headers: map[string]string{"X-Request-Id": "some-tid1"},
-				Body:    `{"payload":{},"contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","lastModified":"2017-03-30T13:09:06.48Z"}`,
-			},
-			testName: "Delete with empty payload",
+		"Delete with empty payload": {
+			Headers: map[string]string{"X-Request-Id": "some-tid1"},
+			Fixture: "./testData/content-empty-payload.json",
 		},
 	}
-	for _, test := range testCases {
-		t.Log(test.testName)
-		allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"}
-		allowedContentTypes := []string{"Article", "Video"}
-		config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
-		dummyDataCombiner := DummyDataCombiner{data: CombinedModel{
-			UUID:          "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-			ContentURI:    "http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
-			MarkedDeleted: "true",
-			LastModified:  "2017-03-30T13:09:06.48Z",
-		}}
 
-		expMsg := producer.Message{
-			Headers: test.m.Headers,
-			Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","markedDeleted":"true","lastModified":"2017-03-30T13:09:06.48Z","content":null,"metadata":null}`,
-		}
+	for name, test := range testCases {
+		t.Run(name, func(t *testing.T) {
+			m, err := createMessage(test.Headers, test.Fixture)
+			assert.NoError(t, err)
 
-		dummyMsgProducer := DummyMsgProducer{t: t, expUUID: dummyDataCombiner.data.UUID, expMsg: expMsg}
-		p := MsgProcessor{config: config, DataCombiner: dummyDataCombiner, Forwarder: NewForwarder(dummyMsgProducer, allowedContentTypes)}
+			allowedUris := []string{"methode-article-mapper", "wordpress-article-mapper", "next-video-mapper", "upp-content-validator"}
+			allowedContentTypes := []string{"Article", "Video"}
+			config := MsgProcessorConfig{SupportedContentURIs: allowedUris}
+			dummyDataCombiner := DummyDataCombiner{
+				t: t,
+				data: CombinedModel{
+					UUID:          "0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+					ContentURI:    "http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b",
+					MarkedDeleted: "true",
+					LastModified:  "2017-03-30T13:09:06.48Z",
+				}}
 
-		hook := testLogger.NewTestHook("dummyDataCombiner")
-		assert.Nil(t, hook.LastEntry())
-		assert.Equal(t, 0, len(hook.Entries))
+			expMsg := producer.Message{
+				Headers: m.Headers,
+				Body:    `{"uuid":"0cef259d-030d-497d-b4ef-e8fa0ee6db6b","contentUri":"http://wordpress-article-mapper/content/0cef259d-030d-497d-b4ef-e8fa0ee6db6b","markedDeleted":"true","lastModified":"2017-03-30T13:09:06.48Z","content":null,"metadata":null}`,
+			}
 
-		p.processContentMsg(test.m)
+			dummyMsgProducer := DummyMsgProducer{t: t, expUUID: dummyDataCombiner.data.UUID, expMsg: expMsg}
+			p := MsgProcessor{config: config, DataCombiner: dummyDataCombiner, Forwarder: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
-		assert.Equal(t, "info", hook.LastEntry().Level.String())
-		assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Mapped and sent for uuid: %v", test.m.Headers["X-Request-Id"], dummyDataCombiner.data.UUID))
-		assert.Equal(t, 1, len(hook.Entries))
+			hook := testLogger.NewTestHook("dummyDataCombiner")
+			assert.Nil(t, hook.LastEntry())
+			assert.Equal(t, 0, len(hook.Entries))
+
+			p.processContentMsg(m)
+
+			assert.Equal(t, "info", hook.LastEntry().Level.String())
+			assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("%v - Mapped and sent for uuid: %v", m.Headers["X-Request-Id"], dummyDataCombiner.data.UUID))
+			assert.Equal(t, 1, len(hook.Entries))
+		})
 	}
 }
 
 func TestProcessMetadataMsg_UnSupportedOrigins(t *testing.T) {
-	m := consumer.Message{
-		Headers: map[string]string{"X-Request-Id": "some-tid1", "Origin-System-Id": "origin"},
-		Body:    `some body`,
-	}
+	m, err := createMessage(map[string]string{"X-Request-Id": "some-tid1", "Origin-System-Id": "origin"}, "./testData/annotations.json")
+	assert.NoError(t, err)
 
 	allowedOrigins := []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"}
 	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins}
@@ -248,6 +256,7 @@ func TestProcessMetadataMsg_UnSupportedOrigins(t *testing.T) {
 }
 
 func TestProcessMetadataMsg_SupportedOrigin_Unmarshall_Error(t *testing.T) {
+
 	m := consumer.Message{
 		Headers: map[string]string{"X-Request-Id": "some-tid1", "Origin-System-Id": "http://cmdb.ft.com/systems/binding-service"},
 		Body:    `some body`,
@@ -270,14 +279,21 @@ func TestProcessMetadataMsg_SupportedOrigin_Unmarshall_Error(t *testing.T) {
 }
 
 func TestProcessMetadataMsg_Combiner_Errors(t *testing.T) {
-	m := consumer.Message{
-		Headers: map[string]string{"X-Request-Id": "some-tid1", "Origin-System-Id": "http://cmdb.ft.com/systems/binding-service"},
-		Body:    `{"uuid":"some_uuid","annotations":[{"ID":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","PrefLabel":"Barclays","Types":["http://base-url/core/Thing","http://base-url/concept/Concept"],"Predicate":"http://base-url/about","ApiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}]}`,
-	}
+
+	m, err := createMessage(map[string]string{"X-Request-Id": "some-tid1", "Origin-System-Id": "http://cmdb.ft.com/systems/binding-service"}, "./testData/annotations.json")
+	assert.NoError(t, err)
+
+	am := &AnnotationsMessage{}
+	err = json.Unmarshal([]byte(m.Body), am)
+	assert.NoError(t, err)
 
 	allowedOrigins := []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"}
 	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins}
-	dummyDataCombiner := DummyDataCombiner{err: errors.New("some error")}
+	dummyDataCombiner := DummyDataCombiner{
+		t:                t,
+		expectedMetadata: *am,
+		err:              errors.New("some error"),
+	}
 	p := &MsgProcessor{config: config, DataCombiner: dummyDataCombiner}
 
 	hook := testLogger.NewTestHook("dummyDataCombiner")
@@ -292,15 +308,17 @@ func TestProcessMetadataMsg_Combiner_Errors(t *testing.T) {
 }
 
 func TestProcessMetadataMsg_Forwarder_Errors(t *testing.T) {
-	m := consumer.Message{
-		Headers: map[string]string{"X-Request-Id": "some-tid1", "Origin-System-Id": "http://cmdb.ft.com/systems/binding-service"},
-		Body:    `{"uuid":"some_uuid","annotations":[{"ID":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","PrefLabel":"Barclays","Types":["http://base-url/core/Thing","http://base-url/concept/Concept"],"Predicate":"http://base-url/about","ApiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}]}`,
-	}
+	m, err := createMessage(map[string]string{"X-Request-Id": "some-tid1", "Origin-System-Id": "http://cmdb.ft.com/systems/binding-service"}, "./testData/annotations.json")
+	assert.NoError(t, err)
+
+	am := &AnnotationsMessage{}
+	err = json.Unmarshal([]byte(m.Body), am)
+	assert.NoError(t, err)
 
 	allowedOrigins := []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"}
 	allowedContentTypes := []string{"Article", "Video", ""}
 	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins}
-	dummyDataCombiner := DummyDataCombiner{data: CombinedModel{UUID: "some_uuid"}}
+	dummyDataCombiner := DummyDataCombiner{t: t, expectedMetadata: *am, data: CombinedModel{UUID: "some_uuid"}}
 	dummyMsgProducer := DummyMsgProducer{t: t, expError: errors.New("some dummyMsgProducer error")}
 
 	p := &MsgProcessor{config: config, DataCombiner: dummyDataCombiner, Forwarder: NewForwarder(dummyMsgProducer, allowedContentTypes)}
@@ -318,16 +336,20 @@ func TestProcessMetadataMsg_Forwarder_Errors(t *testing.T) {
 }
 
 func TestProcessMetadataMsg_Successfully_Forwarded(t *testing.T) {
-	m := consumer.Message{
-		Headers: map[string]string{"X-Request-Id": "some-tid1", "Origin-System-Id": "http://cmdb.ft.com/systems/binding-service"},
-		Body:    `{"uuid":"some_uuid","annotations":[{"ID":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","PrefLabel":"Barclays","Types":["http://base-url/core/Thing","http://base-url/concept/Concept"],"Predicate":"http://base-url/about","ApiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}]}`,
-	}
+	m, err := createMessage(map[string]string{"X-Request-Id": "some-tid1", "Origin-System-Id": "http://cmdb.ft.com/systems/binding-service"}, "./testData/annotations.json")
+	assert.NoError(t, err)
+
+	am := &AnnotationsMessage{}
+	err = json.Unmarshal([]byte(m.Body), am)
+	assert.NoError(t, err)
 
 	allowedOrigins := []string{"http://cmdb.ft.com/systems/binding-service", "http://cmdb.ft.com/systems/methode-web-pub"}
 	allowedContentTypes := []string{"Article", "Video"}
 	config := MsgProcessorConfig{SupportedHeaders: allowedOrigins}
 
 	dummyDataCombiner := DummyDataCombiner{
+		t:                t,
+		expectedMetadata: *am,
 		data: CombinedModel{
 			UUID:    "some_uuid",
 			Content: ContentModel{"uuid": "some_uuid", "title": "simple title", "type": "Article"},
@@ -531,18 +553,44 @@ func (p DummyMsgProducer) ConnectivityCheck() (string, error) {
 }
 
 type DummyDataCombiner struct {
-	data CombinedModel
-	err  error
+	t                *testing.T
+	expectedContent  ContentModel
+	expectedMetadata AnnotationsMessage
+	expectedUUID     string
+	data             CombinedModel
+	err              error
 }
 
 func (c DummyDataCombiner) GetCombinedModelForContent(content ContentModel) (CombinedModel, error) {
+	assert.Equal(c.t, c.expectedContent, content)
 	return c.data, c.err
 }
 
-func (c DummyDataCombiner) GetCombinedModelForAnnotations(metadata Annotations) (CombinedModel, error) {
+func (c DummyDataCombiner) GetCombinedModelForAnnotations(metadata AnnotationsMessage) (CombinedModel, error) {
+	assert.Equal(c.t, c.expectedMetadata, metadata)
 	return c.data, c.err
 }
 
 func (c DummyDataCombiner) GetCombinedModel(uuid string) (CombinedModel, error) {
+	assert.Equal(c.t, c.expectedUUID, uuid)
 	return c.data, c.err
+}
+
+func createMessage(headers map[string]string, fixture string) (consumer.Message, error) {
+
+	f, err := os.Open(fixture)
+	if err != nil {
+		return consumer.Message{}, err
+	}
+	defer f.Close()
+
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		return consumer.Message{}, err
+	}
+
+	return consumer.Message{
+		Headers: headers,
+		Body:    string(data),
+	}, nil
 }

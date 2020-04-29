@@ -3,19 +3,22 @@ package processor
 import (
 	"errors"
 	"fmt"
+	"testing"
+
 	testLogger "github.com/Financial-Times/go-logger/test"
 	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestForceMessageWithTID(t *testing.T) {
 	allowedContentTypes := []string{"Article", "Video"}
-
+	testUUID := "some_uuid"
 	dummyDataCombiner := DummyDataCombiner{
+		t:            t,
+		expectedUUID: testUUID,
 		data: CombinedModel{
-			UUID:    "some_uuid",
-			Content: ContentModel{"uuid": "some_uuid", "title": "simple title", "type": "Article"},
+			UUID:    testUUID,
+			Content: ContentModel{"uuid": testUUID, "title": "simple title", "type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -39,14 +42,14 @@ func TestForceMessageWithTID(t *testing.T) {
 		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":"","content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
 	}
 
-	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: dummyDataCombiner.data.UUID, expTID: tid, expMsg: expMsg}
+	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: testUUID, expTID: tid, expMsg: expMsg}
 	p := &RequestProcessor{DataCombiner: dummyDataCombiner, Forwarder: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("dummyDataCombiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
-	err := p.ForceMessagePublish(dummyDataCombiner.data.UUID, tid)
+	err := p.ForceMessagePublish(testUUID, tid)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "info", hook.LastEntry().Level.String())
@@ -56,11 +59,13 @@ func TestForceMessageWithTID(t *testing.T) {
 
 func TestForceMessageWithoutTID(t *testing.T) {
 	allowedContentTypes := []string{"Article", "Video"}
-
+	testUUID := "some_uuid"
 	dummyDataCombiner := DummyDataCombiner{
+		t:            t,
+		expectedUUID: testUUID,
 		data: CombinedModel{
-			UUID:    "some_uuid",
-			Content: ContentModel{"uuid": "some_uuid", "title": "simple title", "type": "Article"},
+			UUID:    testUUID,
+			Content: ContentModel{"uuid": testUUID, "title": "simple title", "type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -85,14 +90,14 @@ func TestForceMessageWithoutTID(t *testing.T) {
 		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":"","content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
 	}
 
-	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: dummyDataCombiner.data.UUID, expMsg: expMsg}
+	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: testUUID, expMsg: expMsg}
 	p := &RequestProcessor{DataCombiner: dummyDataCombiner, Forwarder: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("dummyDataCombiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
-	err := p.ForceMessagePublish(dummyDataCombiner.data.UUID, emptyTID)
+	err := p.ForceMessagePublish(testUUID, emptyTID)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "info", hook.LastEntry().Level.String())
@@ -102,7 +107,7 @@ func TestForceMessageWithoutTID(t *testing.T) {
 
 func TestForceMessageCombinerError(t *testing.T) {
 	allowedContentTypes := []string{"Article", "Video"}
-	combiner := DummyDataCombiner{err: errors.New("some error")}
+	combiner := DummyDataCombiner{t: t, err: errors.New("some error")}
 	expMsg := producer.Message{
 		Headers: map[string]string{"Message-Type": CombinerMessageType, "X-Request-Id": "[ignore]", "Origin-System-Id": CombinerOrigin, "Content-Type": ContentType},
 		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":"","content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
@@ -130,31 +135,34 @@ func TestForceMessageNotFoundError(t *testing.T) {
 		Headers: map[string]string{"Message-Type": CombinerMessageType, "X-Request-Id": "[ignore]", "Origin-System-Id": CombinerOrigin, "Content-Type": ContentType},
 		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":"","content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
 	}
-	combiner := DummyDataCombiner{}
-	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
+	testUUID := "some_uuid"
+	combiner := DummyDataCombiner{t: t, expectedUUID: testUUID}
+	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: testUUID, expMsg: expMsg}
 	p := &RequestProcessor{DataCombiner: combiner, Forwarder: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
-	uuid := "80fb3e57-8d3b-4f07-bbb6-8788452d63cb"
-	err := p.ForceMessagePublish(uuid, "")
+	err := p.ForceMessagePublish(testUUID, "")
 	assert.Equal(t, NotFoundError, err)
 
 	assert.Equal(t, "error", hook.LastEntry().Level.String())
-	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("Could not find content with uuid %s.", uuid))
+	assert.Contains(t, hook.LastEntry().Message, fmt.Sprintf("Could not find content with uuid %s.", testUUID))
 	assert.Equal(t, hook.LastEntry().Data["error"].(error).Error(), "content not found")
 	assert.Equal(t, 2, len(hook.Entries))
 }
 
 func TestForceMessage_FilteringError(t *testing.T) {
 	allowedContentTypes := []string{"Article", "Video"}
+	testUUID := "80fb3e57-8d3b-4f07-bbb6-8788452d63cb"
 	combiner := DummyDataCombiner{
+		t:            t,
+		expectedUUID: testUUID,
 		data: CombinedModel{
-			UUID: "80fb3e57-8d3b-4f07-bbb6-8788452d63cb",
+			UUID: testUUID,
 			// Content Placeholders - marked with Content type - shouldn't get into the Combined queue
-			Content: ContentModel{"uuid": "80fb3e57-8d3b-4f07-bbb6-8788452d63cb", "title": "simple title", "type": "Content"},
+			Content: ContentModel{"uuid": testUUID, "title": "simple title", "type": "Content"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -176,15 +184,14 @@ func TestForceMessage_FilteringError(t *testing.T) {
 		Headers: map[string]string{"Message-Type": CombinerMessageType, "X-Request-Id": "[ignore]", "Origin-System-Id": CombinerOrigin, "Content-Type": ContentType},
 		Body:    `{"uuid":"some_uuid","contentUri":"","lastModified":"","markedDeleted":"","content":{"uuid":"some_uuid","title":"simple title","type":"Article"},"metadata":[{"thing":{"id":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995","prefLabel":"Barclays","types":["http://base-url/core/Thing","http://base-url/concept/Concept","http://base-url/organisation/Organisation","http://base-url/company/Company","http://base-url/company/PublicCompany"],"predicate":"http://base-url/about","apiUrl":"http://base-url/80bec524-8c75-4d0f-92fa-abce3962d995"}}]}`,
 	}
-	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: combiner.data.UUID, expMsg: expMsg}
+	dummyMsgProducer := DummyMsgProducer{t: t, expUUID: testUUID, expMsg: expMsg}
 	p := &RequestProcessor{DataCombiner: combiner, Forwarder: NewForwarder(dummyMsgProducer, allowedContentTypes)}
 
 	hook := testLogger.NewTestHook("combiner")
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
-	uuid := "80fb3e57-8d3b-4f07-bbb6-8788452d63cb"
-	err := p.ForceMessagePublish(uuid, "")
+	err := p.ForceMessagePublish(testUUID, "")
 	assert.Equal(t, InvalidContentTypeError, err)
 
 	assert.Equal(t, "info", hook.LastEntry().Level.String())
@@ -194,11 +201,13 @@ func TestForceMessage_FilteringError(t *testing.T) {
 
 func TestForceMessageProducerError(t *testing.T) {
 	allowedContentTypes := []string{"Article", "Video"}
-
+	testUUID := "some_uuid"
 	dummyDataCombiner := DummyDataCombiner{
+		t:            t,
+		expectedUUID: testUUID,
 		data: CombinedModel{
-			UUID:    "some_uuid",
-			Content: ContentModel{"uuid": "some_uuid", "title": "simple title", "type": "Article"},
+			UUID:    testUUID,
+			Content: ContentModel{"uuid": testUUID, "title": "simple title", "type": "Article"},
 			Metadata: []Annotation{
 				{
 					Thing: Thing{
@@ -223,7 +232,7 @@ func TestForceMessageProducerError(t *testing.T) {
 	assert.Nil(t, hook.LastEntry())
 	assert.Equal(t, 0, len(hook.Entries))
 
-	err := p.ForceMessagePublish(dummyDataCombiner.data.UUID, "")
+	err := p.ForceMessagePublish(testUUID, "")
 	assert.Equal(t, dummyMsgProducer.expError, err)
 
 	assert.Equal(t, "error", hook.LastEntry().Level.String())

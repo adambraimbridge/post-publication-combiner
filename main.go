@@ -12,16 +12,15 @@ import (
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
+	"github.com/Financial-Times/message-queue-go-producer/producer"
 	"github.com/Financial-Times/message-queue-gonsumer/consumer"
+	"github.com/Financial-Times/post-publication-combiner/v2/processor"
+	"github.com/Financial-Times/post-publication-combiner/v2/utils"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/jawher/mow.cli"
+	cli "github.com/jawher/mow.cli"
 	"github.com/rcrowley/go-metrics"
-
-	"github.com/Financial-Times/message-queue-go-producer/producer"
-	"github.com/Financial-Times/post-publication-combiner/processor"
-	"github.com/Financial-Times/post-publication-combiner/utils"
 )
 
 const serviceName = "post-publication-combiner"

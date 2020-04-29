@@ -3,11 +3,12 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type dummyClient struct {
@@ -42,7 +43,7 @@ func TestExecuteHTTPRequest(t *testing.T) {
 			url:           "one malformed:url",
 			expRespBody:   nil,
 			expRespStatus: -1,
-			expErrStr:     "Error creating requests for url=one malformed:url, error=parse one malformed:url: first path segment in URL cannot contain colon",
+			expErrStr:     "Error creating requests for url=one malformed:url",
 		},
 		{
 			dc: dummyClient{
@@ -81,7 +82,7 @@ func TestExecuteHTTPRequest(t *testing.T) {
 		b, s, err := executeHTTPRequest(testCase.url, &testCase.dc)
 
 		if err != nil {
-			assert.Equal(t, testCase.expErrStr, err.Error(), fmt.Sprintf("Expected error %v not equal with received error %v", testCase.expErrStr, err))
+			assert.Contains(t, err.Error(), testCase.expErrStr)
 		} else {
 			assert.Equal(t, testCase.expErrStr, "", fmt.Sprintf("Expected error %v not equal with nil", testCase.expErrStr))
 		}
